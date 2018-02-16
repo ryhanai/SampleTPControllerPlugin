@@ -112,11 +112,13 @@ namespace teaching
     void registerCommand(std::string internalName, std::string displayName, std::string returnType,
                          std::list<A> arguments, Command* commandFunc);
     void setToolLink(int toolNumber, std::string linkName) { toolLinks_[toolNumber] = linkName; }
-    std::string getToolLink(int toolNumber) { return toolLinks_[toolNumber]; }
+    std::string getToolLinkName(int toolNumber) { return toolLinks_[toolNumber]; }
+    cnoid::Link* getToolLink(int toolNumber);
     cnoid::BodyItem* getRobotItem();
     cnoid::BodyItem* findItemByName(const std::string& name);
-    bool executeJointMotion(BodyItem* robotItem, double duration);
-    bool executeCartesianMotion(BodyItem* robotItem, Link* wrist, JointPathPtr jointPath, double duration);
+    cnoid::BodyPtr getRobotBody ();
+    bool executeJointMotion(double duration);
+    bool executeCartesianMotion(Link* wrist, JointPathPtr jointPath, double duration);
     
     // Model action
     bool updateAttachedModels ();

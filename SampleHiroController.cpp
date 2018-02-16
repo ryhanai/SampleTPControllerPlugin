@@ -1,5 +1,5 @@
 #include <sstream>
-#include <cnoid/ValueTree>
+#include <cnoid/ValueTree> // for Listing
 #include <QCoreApplication>
 #include "SampleHiroController.h"
 
@@ -30,24 +30,21 @@ namespace teaching
   {
     double angle = toRad(boost::get<double>(params[0]));
     double duration = boost::get<double>(params[1]);
-
     printLog("moveTorso(", angle, ", ", duration, ")");
 
-    BodyItem* robotItem = c_->getRobotItem();
-    BodyPtr body = robotItem->body();
+    BodyPtr body = c_->getRobotBody();
 
-    c_->jointInterpolator.clear();
-    VectorXd qCur;
     int n = body->numJoints();
+    VectorXd qCur;
     qCur.resize(n);
-
     for (int i = 0; i < n; i++) { qCur[i] = body->joint(i)->q(); }
+    c_->jointInterpolator.clear();
     c_->jointInterpolator.appendSample(0, qCur);
     qCur[body->link("CHEST_JOINT0")->jointId()] = angle;
     c_->jointInterpolator.appendSample(duration, qCur);
     c_->jointInterpolator.update();
 
-    return c_->executeJointMotion(robotItem, duration);
+    return c_->executeJointMotion(duration);
   }
 
   bool SampleHiroController::MoveHeadCommand::operator()(const std::vector<CompositeParamType>& params)
@@ -55,9 +52,8 @@ namespace teaching
     VectorX angles = (boost::get<Vector2>(params[0]));
     VectorX angles2 = toRad(angles);
     double duration = boost::get<double>(params[1]);
+    printLog("moveHead(", angles2.transpose(), ", ", duration, ")");
 
-    // c_->logPrint("moveHead(", angles2->transpose(), ",", duration, ")");
-    // BodyPtr body = c_->getRobotBody();
     // Trajectory traj;
     // VectorXd q0 = body->joints->q();
     // traj.append(0, q0);
@@ -66,11 +62,7 @@ namespace teaching
     // traj.append(duration, q0);
     // executeJointMotion(traj);
 
-    printLog("moveHead(", angles2.transpose(), ", ", duration, ")");
-
-    BodyItem* robotItem = c_->getRobotItem();
-    BodyPtr body = robotItem->body();
-
+    BodyPtr body = c_->getRobotBody();
     c_->jointInterpolator.clear();
     VectorXd qCur;
     int n = body->numJoints();
@@ -83,7 +75,7 @@ namespace teaching
     c_->jointInterpolator.appendSample(duration, qCur);
     c_->jointInterpolator.update();
 
-    return c_->executeJointMotion(robotItem, duration);
+    return c_->executeJointMotion(duration);
   }
 
   bool SampleHiroController::MoveArmCommand::operator()(const std::vector<CompositeParamType>& params)
@@ -91,23 +83,15 @@ namespace teaching
     Vector3 xyz(boost::get<VectorX>(params[0]));
     Vector3 rpy_tmp(boost::get<VectorX>(params[1]));
     Vector3 rpy = toRad(rpy_tmp);
-    // VectorX xyzWork(boost::get<VectorX>(params[0]));
-    // Vector3 xyz;
-    // for (int index = 0; index < 3; index++) { xyz[index] = xyzWork[index]; }
-    // VectorX rpyWork(boost::get<VectorX>(params[1]));
-    // Vector3 rpy_tmp;
-    // for (int index = 0; index < 3; index++) { rpy_tmp[index] = rpyWork[index]; }
     double duration = boost::get<double>(params[2]);
     int armID = boost::get<int>(params[3]);
-
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
     try {
-      std::string linkName = c_->getToolLink(armID);
-      BodyItem* robotItem = c_->getRobotItem();
-      BodyPtr body = robotItem->body();
+      BodyPtr body = c_->getRobotBody();
       Link* base = body->rootLink();
-      Link* wrist = body->link(linkName);
+      Link* wrist = body->link(c_->getToolLinkName(armID));
+
       JointPathPtr jointPath = getCustomJointPath(body, base, wrist);
       jointPath->calcForwardKinematics();
 
@@ -115,7 +99,7 @@ namespace teaching
       c_->ci.appendSample(0, wrist->p(), wrist->attitude());
       c_->ci.appendSample(duration, xyz, rotFromRpy(rpy));
       c_->ci.update();
-      return c_->executeCartesianMotion(robotItem, wrist, jointPath, duration);
+      return c_->executeCartesianMotion(wrist, jointPath, duration);
     } catch (...) {
       printLog("unknown armID: ", armID);
       return false;
@@ -127,20 +111,13 @@ namespace teaching
     double width = boost::get<double>(params[0]);
     double duration = boost::get<double>(params[1]);
     int gripperID = boost::get<int>(params[2]);
-
     printLog("moveGripper(", width, ", ", duration, ", ", gripperID, ")");
 
     std::vector<std::string> gripperLinks;
     if (gripperID == 0) {
-      gripperLinks.push_back("LHAND_JOINT0");
-      gripperLinks.push_back("LHAND_JOINT1");
-      gripperLinks.push_back("LHAND_JOINT2");
-      gripperLinks.push_back("LHAND_JOINT3");
+      gripperLinks = {"LHAND_JOINT0", "LHAND_JOINT1", "LHAND_JOINT2", "LHAND_JOINT3"};
     } else if (gripperID == 1) {
-      gripperLinks.push_back("RHAND_JOINT0");
-      gripperLinks.push_back("RHAND_JOINT1");
-      gripperLinks.push_back("RHAND_JOINT2");
-      gripperLinks.push_back("RHAND_JOINT3");
+      gripperLinks = {"RHAND_JOINT0", "RHAND_JOINT1", "RHAND_JOINT2", "RHAND_JOINT3"};
     } else {
       printLog("unknown gripperID: ", gripperID);
       return false;
@@ -153,11 +130,8 @@ namespace teaching
   {
     double torque = boost::get<double>(params[0]);
     double max_depth = boost::get<double>(params[1]);
-
-    printLog("screw)", torque, ", ", max_depth, ")");
-
-    // BodyItem* robotItem = getRobotItem();
-    // BodyPtr body = robotItem->body();
+    printLog("screw(", torque, ", ", max_depth, "): not yet implemented");
+    // BodyPtr body = c_->getRobotBody();
     // Link* base = body->rootLink();
     // string linkName = "RARM_JOINT5";
     // Link* wrist = body->link(linkName);
@@ -169,9 +143,7 @@ namespace teaching
   {
     double duration = boost::get<double>(params[0]);
 
-    BodyItem* robotItem = c_->getRobotItem();
-    BodyPtr body = robotItem->body();
-
+    BodyPtr body = c_->getRobotBody();
     c_->jointInterpolator.clear();
     VectorXd qCur;
     int n = body->numJoints();
@@ -192,7 +164,7 @@ namespace teaching
 
       c_->jointInterpolator.appendSample(duration, qCur);
       c_->jointInterpolator.update();
-      return c_->executeJointMotion(robotItem, duration);
+      return c_->executeJointMotion(duration);
     }
     return false;
   }
@@ -205,25 +177,12 @@ namespace teaching
     Vector3 rightHandXyz(boost::get<Vector3>(params[2]));
     Vector3 rightHandRpy(boost::get<Vector3>(params[3]));
     Vector3 rightHandRpy2 = toRad(rightHandRpy);
-    // VectorX leftHandXyzWork(boost::get<VectorX>(params[0]));
-    // VectorX leftHandRpyWork(boost::get<VectorX>(params[1]));
-    // VectorX rightHandXyzWork(boost::get<VectorX>(params[2]));
-    // VectorX rightHandRpyWork(boost::get<VectorX>(params[3]));
-    // Vector3 leftHandXyz, leftHandRpy, rightHandXyz, rightHandRpy;
-    // for (int index = 0; index < 3; index++) {
-    //   leftHandXyz[index] = leftHandXyzWork[index];
-    //   leftHandRpy[index] = leftHandRpyWork[index];
-    //   rightHandXyz[index] = rightHandXyzWork[index];
-    //   rightHandRpy[index] = rightHandRpyWork[index];
-    // }
     double torsoAngle2 = toRad(boost::get<double>(params[4]));
     double duration = boost::get<double>(params[5]);
-
     printLog("move(", leftHandXyz.transpose(), ", ", leftHandRpy2.transpose(), ", ",
              rightHandXyz.transpose(), ", ", rightHandRpy2.transpose(), ", ", duration, ")");
-    
-    BodyItem* robotItem = c_->getRobotItem();
-    BodyPtr body = robotItem->body();
+
+    BodyPtr body = c_->getRobotBody();
     Link* base = body->rootLink();
     Link* lwrist = body->link("LARM_JOINT5");
     Link* rwrist = body->link("RARM_JOINT5");
@@ -268,13 +227,13 @@ namespace teaching
 
   bool SampleHiroController::executeDualArmMotion(double duration)
   {
-    BodyItem* robotItem = getRobotItem();
-    BodyPtr body = robotItem->body();
+    printLog("SampleHiroController::executeDualArmMotion");
+
+    BodyPtr body = getRobotBody();
     Link* base = body->link("CHEST_JOINT0");
     Link* lwrist = body->link("LARM_JOINT5");
     Link* rwrist = body->link("RARM_JOINT5");
     JointPathPtr lJointPath = getCustomJointPath(body, base, lwrist);
-
     JointPathPtr rJointPath = getCustomJointPath(body, base, rwrist);
 
     double dt = getTimeStep();
@@ -303,6 +262,7 @@ namespace teaching
       }
 
       updateAttachedModels();
+      BodyItem* robotItem = getRobotItem();
       robotItem->notifyKinematicStateChange(true);
       QCoreApplication::processEvents();
 #ifdef _WIN32
@@ -320,9 +280,7 @@ namespace teaching
   {
     printLog("SampleHiroController::executeGripperMotion");
 
-    BodyItem* robotItem = getRobotItem();
-    BodyPtr body = robotItem->body();
-
+    BodyPtr body = getRobotBody();
     jointInterpolator.clear();
     VectorXd qCur;
     int n = body->numJoints();
@@ -340,7 +298,7 @@ namespace teaching
     qCur[body->link(gripperLinks[3])->jointId()] = th;
     jointInterpolator.appendSample(duration, qCur);
     jointInterpolator.update();
-    return executeJointMotion(robotItem, duration);
+    return executeJointMotion(duration);
   }
 
 }

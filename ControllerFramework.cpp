@@ -106,7 +106,7 @@ namespace teaching
     BodyPtr robotBody = getRobotItem()->body();
 
     try {
-      Link* handLink = robotBody->link(getToolLink(target));
+      Link* handLink = getToolLink(target);
       Link* objectLink = object->body()->link(0);
       Position relTrans = handLink->position().inverse()*objectLink->position();
       AttachedModel* model = new AttachedModel();
@@ -131,7 +131,7 @@ namespace teaching
     BodyPtr robotBody = getRobotItem()->body();
 
     try {
-      Link* handLink = robotBody->link(getToolLink(target));
+      Link* handLink = getToolLink(target);
       Link* objectLink = object->body()->link(0);
 
       for (std::vector<AttachedModel*>::iterator it = attachedObjs_.begin(); it != attachedObjs_.end();) {
@@ -152,6 +152,13 @@ namespace teaching
     return true;
   }
 
+  cnoid::Link* Controller::getToolLink(int toolNumber)
+  {
+    BodyPtr robotBody = getRobotBody();
+    Link* link = robotBody->link(getToolLinkName(toolNumber));
+    return link;
+  }
+
   BodyItem* Controller::getRobotItem ()
   {
     return findItemByName(rootName);
@@ -167,6 +174,13 @@ namespace teaching
     }
 
     return NULL;
+  }
+
+  BodyPtr Controller::getRobotBody ()
+  {
+    BodyItem* robotItem = getRobotItem();
+    BodyPtr robotBody = robotItem->body();
+    return robotBody;
   }
 
   bool Controller::updateAttachedModels ()
@@ -206,10 +220,11 @@ namespace teaching
     commandDefs_.push_back(cmd);
   }
 
-  bool Controller::executeJointMotion(BodyItem* robotItem, double duration)
+  bool Controller::executeJointMotion(double duration)
   {
     printLog("executeJointMotion : ", duration);
 
+    BodyItem* robotItem = getRobotItem();
     BodyPtr body = robotItem->body();
 
     for (double time = 0.0; time < duration+dt_; time += dt_) {
@@ -241,7 +256,7 @@ namespace teaching
     return true;
   }
 
-  bool Controller::executeCartesianMotion(BodyItem* robotItem, Link* wrist, JointPathPtr jointPath, double duration)
+  bool Controller::executeCartesianMotion(Link* wrist, JointPathPtr jointPath, double duration)
   {
     for (double time = 0.0; time < duration+dt_; time += dt_) {
       if (time > duration) { time = duration; }
@@ -255,6 +270,7 @@ namespace teaching
       if (jointPath->calcInverseKinematics(tf.translation(),
                                            wrist->calcRfromAttitude(tf.rotation().toRotationMatrix()))) {
         updateAttachedModels();
+        BodyItem* robotItem = getRobotItem();
         robotItem->notifyKinematicStateChange(true);
         QCoreApplication::processEvents();
 #ifdef _WIN32
