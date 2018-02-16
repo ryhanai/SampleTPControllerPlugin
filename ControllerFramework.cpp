@@ -3,7 +3,6 @@
 */
 
 #include <QCoreApplication>
-#include <cnoid/MessageView>
 #include <cnoid/ItemList>
 #include <cnoid/RootItem>
 
@@ -14,10 +13,35 @@
 #include <thread>
 #endif
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
+
 #include "ControllerFramework.h"
 
 namespace teaching
 {
+  double toRad (double deg) {
+    return deg * M_PI/180.0;
+  }
+  // template<typename T>
+  // T toRad (T degs)
+  // {
+  //   T rads(degs.array() * M_PI/180.0);
+  //   return rads;
+  // }
+  Vector3 toRad (Vector3 degs)
+  {
+    Vector3 rads(degs.array() * M_PI/180.0);
+    return rads;
+  }
+  
+  VectorX toRad (VectorX degs)
+  {
+    VectorX rads(degs.array() * M_PI/180.0);
+    return rads;
+  }
+  
   void CartesianInterpolator::clear()
   {
     vInterpolator_.clear();
@@ -95,7 +119,7 @@ namespace teaching
       attachedObjs_.push_back(model);
 
     } catch(...) {
-      MessageView::instance()->putln((boost::format("[attachModeItem] unknown link ID: %d") % target).str());
+      printLog("[attachModeItem] unknown link ID: ", target);
       return false;
     }
 
@@ -113,7 +137,7 @@ namespace teaching
       for (std::vector<AttachedModel*>::iterator it = attachedObjs_.begin(); it != attachedObjs_.end();) {
         if ((*it)->handLink == handLink && (*it)->objectLink == objectLink) {
           it = attachedObjs_.erase(it);
-          MessageView::instance()->putln("detachModelItem");
+          printLog("detachModelItem");
         }
         else {
           ++it;
@@ -121,7 +145,7 @@ namespace teaching
       }
     }
     catch (...) {
-      MessageView::instance()->putln((boost::format("[attachModeItem] unknown link ID: %d") % target).str());
+      printLog("[detachModeItem] unknown link ID: ", target);
       return false;
     }
 
@@ -184,9 +208,7 @@ namespace teaching
 
   bool Controller::executeJointMotion(BodyItem* robotItem, double duration)
   {
-    std::stringstream ss;
-    ss << "executeJointMotion : " << duration;
-    MessageView::instance()->putln(ss.str());
+    printLog("executeJointMotion : ", duration);
 
     BodyPtr body = robotItem->body();
 
@@ -214,9 +236,7 @@ namespace teaching
 #endif
     }
 
-    std::stringstream ss2;
-    ss2 << "executeJointMotion Finished";
-    MessageView::instance()->putln(ss2.str());
+    printLog("executeJointMotion Finished");
 
     return true;
   }

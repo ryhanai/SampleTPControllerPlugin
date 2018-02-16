@@ -1,7 +1,4 @@
-#define _USE_MATH_DEFINES
-#include <cmath>
 #include <sstream>
-#include <cnoid/MessageView>
 #include <cnoid/ValueTree>
 #include <QCoreApplication>
 #include "SampleHiroController.h"
@@ -31,13 +28,10 @@ namespace teaching
 
   bool SampleHiroController::MoveTorsoCommand::operator()(const std::vector<CompositeParamType>& params)
   {
-    double angle = boost::get<double>(params[0]);
+    double angle = toRad(boost::get<double>(params[0]));
     double duration = boost::get<double>(params[1]);
-    angle *= M_PI/180.0;
 
-    std::stringstream ss;
-    ss << "moveTorso(" << angle << ", " << duration << ")";
-    MessageView::instance()->putln(ss.str());
+    printLog("moveTorso(", angle, ", ", duration, ")");
 
     BodyItem* robotItem = c_->getRobotItem();
     BodyPtr body = robotItem->body();
@@ -58,12 +52,9 @@ namespace teaching
 
   bool SampleHiroController::MoveHeadCommand::operator()(const std::vector<CompositeParamType>& params)
   {
-    Vector2 angles(boost::get<Vector2>(params[0]));
-    // VectorX anglesWork(boost::get<VectorX>(params[0]));
-    // Vector2 angles;
-    // for (int index = 0; index < 2; index++) { angles[index] = anglesWork[index]; }
+    VectorX angles = (boost::get<Vector2>(params[0]));
+    VectorX angles2 = toRad(angles);
     double duration = boost::get<double>(params[1]);
-    Vector2 angles2 = angles.array() * PI/180.0;
 
     // c_->logPrint("moveHead(", angles2->transpose(), ",", duration, ")");
     // BodyPtr body = c_->getRobotBody();
@@ -74,11 +65,9 @@ namespace teaching
     // q0[body->link("HEAD_JOINT1")->jointId()] = (*angles2)[1];
     // traj.append(duration, q0);
     // executeJointMotion(traj);
-    
-    std::stringstream ss;
-    ss << "moveHead(" << angles2.transpose() << ", " << duration << ")";
-    MessageView::instance()->putln(ss.str());
-    
+
+    printLog("moveHead(", angles2.transpose(), ", ", duration, ")");
+
     BodyItem* robotItem = c_->getRobotItem();
     BodyPtr body = robotItem->body();
 
@@ -101,6 +90,7 @@ namespace teaching
   {
     Vector3 xyz(boost::get<VectorX>(params[0]));
     Vector3 rpy_tmp(boost::get<VectorX>(params[1]));
+    Vector3 rpy = toRad(rpy_tmp);
     // VectorX xyzWork(boost::get<VectorX>(params[0]));
     // Vector3 xyz;
     // for (int index = 0; index < 3; index++) { xyz[index] = xyzWork[index]; }
@@ -109,12 +99,8 @@ namespace teaching
     // for (int index = 0; index < 3; index++) { rpy_tmp[index] = rpyWork[index]; }
     double duration = boost::get<double>(params[2]);
     int armID = boost::get<int>(params[3]);
-    Vector3 rpy = rpy_tmp.array() * PI/180.0;
 
-    std::stringstream ss;
-    ss << "(^^); moveArm(" << xyz.transpose() << ", " << rpy.transpose()
-       << ", " << duration << ", " << armID << ")";
-    MessageView::instance()->putln(ss.str());
+    printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
     try {
       std::string linkName = c_->getToolLink(armID);
@@ -131,7 +117,7 @@ namespace teaching
       c_->ci.update();
       return c_->executeCartesianMotion(robotItem, wrist, jointPath, duration);
     } catch (...) {
-      MessageView::instance()->putln((boost::format("unknown armID: %d") % armID).str());
+      printLog("unknown armID: ", armID);
       return false;
     }
   }
@@ -142,9 +128,7 @@ namespace teaching
     double duration = boost::get<double>(params[1]);
     int gripperID = boost::get<int>(params[2]);
 
-    std::stringstream ss;
-    ss << "moveGripper" << width << ", " << duration << ", " << gripperID << ")";
-    MessageView::instance()->putln(ss.str());
+    printLog("moveGripper(", width, ", ", duration, ", ", gripperID, ")");
 
     std::vector<std::string> gripperLinks;
     if (gripperID == 0) {
@@ -158,7 +142,7 @@ namespace teaching
       gripperLinks.push_back("RHAND_JOINT2");
       gripperLinks.push_back("RHAND_JOINT3");
     } else {
-      MessageView::instance()->putln((boost::format("unknown gripperID: %d") % gripperID).str());
+      printLog("unknown gripperID: ", gripperID);
       return false;
     }
 
@@ -170,9 +154,7 @@ namespace teaching
     double torque = boost::get<double>(params[0]);
     double max_depth = boost::get<double>(params[1]);
 
-    std::stringstream ss;
-    ss << "screw(" << torque << ", " << max_depth << ")";
-    MessageView::instance()->putln(ss.str());
+    printLog("screw)", torque, ", ", max_depth, ")");
 
     // BodyItem* robotItem = getRobotItem();
     // BodyPtr body = robotItem->body();
@@ -219,8 +201,10 @@ namespace teaching
   {
     Vector3 leftHandXyz(boost::get<Vector3>(params[0]));
     Vector3 leftHandRpy(boost::get<Vector3>(params[1]));
+    Vector3 leftHandRpy2 = toRad(leftHandRpy);
     Vector3 rightHandXyz(boost::get<Vector3>(params[2]));
     Vector3 rightHandRpy(boost::get<Vector3>(params[3]));
+    Vector3 rightHandRpy2 = toRad(rightHandRpy);
     // VectorX leftHandXyzWork(boost::get<VectorX>(params[0]));
     // VectorX leftHandRpyWork(boost::get<VectorX>(params[1]));
     // VectorX rightHandXyzWork(boost::get<VectorX>(params[2]));
@@ -232,17 +216,12 @@ namespace teaching
     //   rightHandXyz[index] = rightHandXyzWork[index];
     //   rightHandRpy[index] = rightHandRpyWork[index];
     // }
-    double torsoAngle = boost::get<double>(params[4]);
+    double torsoAngle2 = toRad(boost::get<double>(params[4]));
     double duration = boost::get<double>(params[5]);
-    Vector3 leftHandRpy2 = leftHandRpy.array() * PI/180.0;
-    Vector3 rightHandRpy2 = rightHandRpy.array() * PI/180.0;
-    double torsoAngle2 = torsoAngle * PI/180.0;
 
-    std::stringstream ss;
-    ss << "move(" << leftHandXyz.transpose() << ", " << leftHandRpy2.transpose() << ", "
-       << rightHandXyz.transpose() << ", " << rightHandRpy2.transpose() << ", " << duration << ")";
-    MessageView::instance()->putln(ss.str());
-
+    printLog("move(", leftHandXyz.transpose(), ", ", leftHandRpy2.transpose(), ", ",
+             rightHandXyz.transpose(), ", ", rightHandRpy2.transpose(), ", ", duration, ")");
+    
     BodyItem* robotItem = c_->getRobotItem();
     BodyPtr body = robotItem->body();
     Link* base = body->rootLink();
@@ -267,22 +246,20 @@ namespace teaching
 
   void SampleHiroController::registerCommands()
   {
-    registerCommand("moveTorso", "Torso", "boolean",
-                    {A("angle", "double", 1), A("tm", "double", 1)},
+    registerCommand("moveTorso", "Torso", "boolean", {A("angle", "double", 1), A("tm", "double", 1)},
                     new MoveTorsoCommand(this));
     registerCommand("moveArm", "Arm", "boolean",
                     {A("xyz", "double", 3), A("rpy", "double", 3), A("tm", "double", 1), A("armID", "int", 1)},
                     new MoveArmCommand(this)); // 0=left, 1=right
-    registerCommand("moveHead", "Head", "boolean",
-                    {A("angles", "double", 2), A("tm", "double", 1)},
+    registerCommand("moveHead", "Head", "boolean", {A("angles", "double", 2), A("tm", "double", 1)},
                     new MoveHeadCommand(this));
     registerCommand("moveGripper", "Gripper", "boolean",
                     {A("width", "double", 1), A("tm", "double", 1), A("gripperID", "int", 1)},
                     new MoveGripperCommand(this)); // 0=left, 1=right
-    registerCommand("screw", "Screw", "boolean",
-                    {A("torque", "double", 1), A("max_depth", "double", 1)},
+    registerCommand("screw", "Screw", "boolean", {A("torque", "double", 1), A("max_depth", "double", 1)},
                     new ScrewCommand(this));
-    registerCommand("goInitial", "Initial Pose", "boolean", {A("tm", "double", 1)}, new GoInitialCommand(this));
+    registerCommand("goInitial", "Initial Pose", "boolean", {A("tm", "double", 1)},
+                    new GoInitialCommand(this));
     registerCommand("move", "Both arms", "boolean",
                     {A("leftHandXyz", "double", 3), A("leftHandRpy", "double", 3), A("rightHandXyz", "double", 3),
                         A("rightHandRpy", "double", 3), A("torsoAngle", "double", 1), A("tm", "double", 1)},
@@ -314,14 +291,14 @@ namespace teaching
       if (!lJointPath->calcInverseKinematics(ltf.translation(),
                                              lwrist->calcRfromAttitude(ltf.rotation().toRotationMatrix())))
       {
-        MessageView::instance()->putln("larm IK failed");
+        printLog("larm IK failed");
         return false;
       }
 
       if (!rJointPath->calcInverseKinematics(rtf.translation(),
                                              rwrist->calcRfromAttitude(rtf.rotation().toRotationMatrix())))
       {
-        MessageView::instance()->putln("rarm IK failed");        
+        printLog("rarm IK failed");
         return false;
       }
 
@@ -341,9 +318,7 @@ namespace teaching
   bool SampleHiroController::executeGripperMotion (const std::vector<std::string>& gripperLinks,
                                                    double width, double duration)
   {
-    std::stringstream ss;
-    ss << "SampleHiroController::executeGripperMotion";
-    MessageView::instance()->putln(ss.str());
+    printLog("SampleHiroController::executeGripperMotion");
 
     BodyItem* robotItem = getRobotItem();
     BodyPtr body = robotItem->body();

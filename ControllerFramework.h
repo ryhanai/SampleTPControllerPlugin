@@ -4,13 +4,41 @@
 #include <list>
 #include <vector>
 #include <map>
+#include <sstream>
 #include <cnoid/BodyItem>
 #include <cnoid/JointPath>
+#include <cnoid/MessageView>
 #include "Interpolator.h"
 #include "ControllerBase.h"
 
 namespace teaching
 {
+  double toRad (double deg);
+  Vector3 toRad (Vector3 degs);
+  VectorX toRad (VectorX degs);
+
+  template<typename T>
+    void printLogAux (std::stringstream& ss, const T& x)
+  {
+    ss << x;
+    // std::cout << ss.str() << std::endl;
+    MessageView::instance()->putln(ss.str());
+  }
+
+  template<typename T, typename ... Rest>
+    void printLogAux (std::stringstream& ss, const T& x, const Rest& ... rest)
+  {
+    ss << x;
+    printLogAux (ss, rest...);
+  }
+
+  template<typename T, typename ... Rest>
+    void printLog (const T& x, const Rest& ... rest)
+  {
+    std::stringstream ss;
+    printLogAux (ss, x, rest...);
+  }
+
 
   class CartesianInterpolator // Nextage: straight-line, spherical linear interpolation
   {

@@ -69,9 +69,9 @@ namespace teaching
 
   private:
     SampleHiroController();
+    void registerCommands ();
     bool executeDualArmMotion(double duration);
     bool executeGripperMotion (const std::vector<std::string>& gripperLinks, double width, double duration);
-    void registerCommands ();
   };
 
 }
