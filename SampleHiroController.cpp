@@ -1,3 +1,7 @@
+/**
+   @author Ryo Hanai
+*/
+
 #include <sstream>
 #include <cnoid/ValueTree> // for Listing
 #include <QCoreApplication>
@@ -15,8 +19,8 @@ namespace teaching
 
   SampleHiroController* SampleHiroController::instance()
   {
-    static SampleHiroController* myController = new SampleHiroController();
-    return myController;
+    static SampleHiroController* controller = new SampleHiroController();
+    return controller;
   }
 
   SampleHiroController::SampleHiroController()
@@ -33,18 +37,14 @@ namespace teaching
     printLog("moveTorso(", angle, ", ", duration, ")");
 
     BodyPtr body = c_->getRobotBody();
-
-    int n = body->numJoints();
-    VectorXd qCur;
-    qCur.resize(n);
-    for (int i = 0; i < n; i++) { qCur[i] = body->joint(i)->q(); }
+    VectorXd qCur = c_->getCurrentJointAngles(body);
     c_->jointInterpolator.clear();
     c_->jointInterpolator.appendSample(0, qCur);
     qCur[body->link("CHEST_JOINT0")->jointId()] = angle;
     c_->jointInterpolator.appendSample(duration, qCur);
     c_->jointInterpolator.update();
 
-    return c_->executeJointMotion(duration);
+    return c_->executeJointMotion();
   }
 
   bool SampleHiroController::MoveHeadCommand::operator()(const std::vector<CompositeParamType>& params)
@@ -54,28 +54,16 @@ namespace teaching
     double duration = boost::get<double>(params[1]);
     printLog("moveHead(", angles2.transpose(), ", ", duration, ")");
 
-    // Trajectory traj;
-    // VectorXd q0 = body->joints->q();
-    // traj.append(0, q0);
-    // q0[body->link("HEAD_JOINT0")->jointId()] = (*angles2)[0];
-    // q0[body->link("HEAD_JOINT1")->jointId()] = (*angles2)[1];
-    // traj.append(duration, q0);
-    // executeJointMotion(traj);
-
     BodyPtr body = c_->getRobotBody();
+    VectorXd qCur = c_->getCurrentJointAngles(body);
     c_->jointInterpolator.clear();
-    VectorXd qCur;
-    int n = body->numJoints();
-    qCur.resize(n);
-
-    for (int i = 0; i < n; i++) { qCur[i] = body->joint(i)->q(); }
     c_->jointInterpolator.appendSample(0, qCur);
     qCur[body->link("HEAD_JOINT0")->jointId()] = angles2[0];
     qCur[body->link("HEAD_JOINT1")->jointId()] = angles2[1];
     c_->jointInterpolator.appendSample(duration, qCur);
     c_->jointInterpolator.update();
 
-    return c_->executeJointMotion(duration);
+    return c_->executeJointMotion();
   }
 
   bool SampleHiroController::MoveArmCommand::operator()(const std::vector<CompositeParamType>& params)
@@ -99,7 +87,7 @@ namespace teaching
       c_->ci.appendSample(0, wrist->p(), wrist->attitude());
       c_->ci.appendSample(duration, xyz, rotFromRpy(rpy));
       c_->ci.update();
-      return c_->executeCartesianMotion(wrist, jointPath, duration);
+      return c_->executeCartesianMotion(wrist, jointPath);
     } catch (...) {
       printLog("unknown armID: ", armID);
       return false;
@@ -123,7 +111,7 @@ namespace teaching
       return false;
     }
 
-    return c_->executeGripperMotion(gripperLinks, width, duration);
+    return c_->executeGripperMotion(gripperLinks, width);
   }
 
   bool SampleHiroController::ScrewCommand::operator()(const std::vector<CompositeParamType>& params)
@@ -144,27 +132,21 @@ namespace teaching
     double duration = boost::get<double>(params[0]);
 
     BodyPtr body = c_->getRobotBody();
-    c_->jointInterpolator.clear();
-    VectorXd qCur;
-    int n = body->numJoints();
-    qCur.resize(n);
-    for (int i = 0; i < n; i++) {
-      qCur[i] = body->joint(i)->q();
-    }
-    c_->jointInterpolator.appendSample(0, qCur);
+    VectorXd qCur = c_->getCurrentJointAngles(body);
 
+    c_->jointInterpolator.clear();
+    c_->jointInterpolator.appendSample(0, qCur);
     int jointIndex = 0;
     const Listing& pose = *body->info()->findListing("standardPose");
     if(pose.isValid()){
-      const int nn = std::min(pose.size(), n);
+      const int nn = std::min(pose.size(), body->numJoints());
       while(jointIndex < nn){
         qCur[jointIndex] = radian(pose[jointIndex].toDouble());
         jointIndex++;
       }
-
       c_->jointInterpolator.appendSample(duration, qCur);
       c_->jointInterpolator.update();
-      return c_->executeJointMotion(duration);
+      return c_->executeJointMotion();
     }
     return false;
   }
@@ -200,7 +182,7 @@ namespace teaching
     c_->ci2.appendSample(duration, rightHandXyz, rotFromRpy(rightHandRpy2));
     c_->ci2.update();
 
-    return c_->executeDualArmMotion(duration);
+    return c_->executeDualArmMotion();
   }
 
   void SampleHiroController::registerCommands()
@@ -225,7 +207,7 @@ namespace teaching
                     new MoveCommand(this));
   }
 
-  bool SampleHiroController::executeDualArmMotion(double duration)
+  bool SampleHiroController::executeDualArmMotion()
   {
     printLog("SampleHiroController::executeDualArmMotion");
 
@@ -237,7 +219,8 @@ namespace teaching
     JointPathPtr rJointPath = getCustomJointPath(body, base, rwrist);
 
     double dt = getTimeStep();
-    
+    double duration = ci.domainUpper();
+
     for (double time = 0.0; time < duration+dt; time += dt) {
       if (time > duration) { time = duration; }
 
@@ -275,22 +258,16 @@ namespace teaching
     return true;
   }
 
-  bool SampleHiroController::executeGripperMotion (const std::vector<std::string>& gripperLinks,
-                                                   double width, double duration)
+  bool SampleHiroController::executeGripperMotion (const std::vector<std::string>& gripperLinks, double width)
   {
     printLog("SampleHiroController::executeGripperMotion");
+    double duration = jointInterpolator.domainUpper();
 
     BodyPtr body = getRobotBody();
+    VectorXd qCur = getCurrentJointAngles(body);
     jointInterpolator.clear();
-    VectorXd qCur;
-    int n = body->numJoints();
-    qCur.resize(n);
-
-    for (int i = 0; i < n; i++) {
-      qCur[i] = body->joint(i)->q();
-    }
     jointInterpolator.appendSample(0, qCur);
- 
+
     double th = asin(((width/2.0) - 0.015) / 0.042);
     qCur[body->link(gripperLinks[0])->jointId()] = th;
     qCur[body->link(gripperLinks[1])->jointId()] = -th;
@@ -298,7 +275,7 @@ namespace teaching
     qCur[body->link(gripperLinks[3])->jointId()] = th;
     jointInterpolator.appendSample(duration, qCur);
     jointInterpolator.update();
-    return executeJointMotion(duration);
+    return executeJointMotion();
   }
-
+  
 }

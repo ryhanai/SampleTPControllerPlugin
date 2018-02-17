@@ -1,3 +1,7 @@
+/**
+   @author Ryo Hanai
+*/
+
 #pragma once
 
 #include "ControllerFramework.h"
@@ -70,8 +74,8 @@ namespace teaching
   private:
     SampleHiroController();
     void registerCommands ();
-    bool executeDualArmMotion(double duration);
-    bool executeGripperMotion (const std::vector<std::string>& gripperLinks, double width, double duration);
+    bool executeDualArmMotion();
+    bool executeGripperMotion (const std::vector<std::string>& gripperLinks, double width);
   };
 
 }

@@ -183,6 +183,15 @@ namespace teaching
     return robotBody;
   }
 
+  VectorXd Controller::getCurrentJointAngles (BodyPtr body)
+  {
+    VectorXd q;
+    int n = body->numJoints();
+    q.resize(n);
+    for (int i = 0; i < n; i++) { q[i] = body->joint(i)->q(); }
+    return q;
+  }
+  
   bool Controller::updateAttachedModels ()
   {
     for (unsigned int index = 0; index<attachedObjs_.size(); index++) {
@@ -220,10 +229,11 @@ namespace teaching
     commandDefs_.push_back(cmd);
   }
 
-  bool Controller::executeJointMotion(double duration)
+  bool Controller::executeJointMotion()
   {
-    printLog("executeJointMotion : ", duration);
+    printLog("executeJointMotion");
 
+    double duration = jointInterpolator.domainUpper();
     BodyItem* robotItem = getRobotItem();
     BodyPtr body = robotItem->body();
 
@@ -256,8 +266,10 @@ namespace teaching
     return true;
   }
 
-  bool Controller::executeCartesianMotion(Link* wrist, JointPathPtr jointPath, double duration)
+  bool Controller::executeCartesianMotion(Link* wrist, JointPathPtr jointPath)
   {
+    double duration = ci.domainUpper();
+
     for (double time = 0.0; time < duration+dt_; time += dt_) {
       if (time > duration) { time = duration; }
 

@@ -1,3 +1,7 @@
+/**
+   @author Ryo Hanai
+*/
+
 #pragma once
 
 #include <string>
@@ -45,6 +49,10 @@ namespace teaching
   public:
     CartesianInterpolator() { }
     void clear();
+
+    int numSamples() const { return ts_.size(); }
+    double domainLower () const { return ts_.empty() ? 0.0 : ts_.front(); }
+    double domainUpper () const { return ts_.empty() ? 0.0 : ts_.back(); }
     void appendSample(double t, const cnoid::Vector3& xyz, const cnoid::Matrix3d& rotation);
     void update();
     cnoid::SE3 interpolate(double t);
@@ -55,11 +63,11 @@ namespace teaching
     std::vector<cnoid::Matrix3d> qsamples_;
   };
 
-  class AttachedModel 
+  class AttachedModel
   {
   public:
     AttachedModel() {};
-    AttachedModel(AttachedModel& source) 
+    AttachedModel(AttachedModel& source)
       : handLink(source.handLink), objectLink(source.objectLink),
         posVal(source.posVal),
         object(source.object) {
@@ -107,7 +115,7 @@ namespace teaching
     virtual bool executeCommand(const std::string& commandName, const std::vector<CompositeParamType>& params, bool isReal=true);
     bool attachModelItem(cnoid::BodyItemPtr object, int target);
     bool detachModelItem(cnoid::BodyItemPtr object, int target);
-    
+
     // Methods used to implement controllers
     void registerCommand(std::string internalName, std::string displayName, std::string returnType,
                          std::list<A> arguments, Command* commandFunc);
@@ -117,12 +125,13 @@ namespace teaching
     cnoid::BodyItem* getRobotItem();
     cnoid::BodyItem* findItemByName(const std::string& name);
     cnoid::BodyPtr getRobotBody ();
-    bool executeJointMotion(double duration);
-    bool executeCartesianMotion(Link* wrist, JointPathPtr jointPath, double duration);
-    
+    cnoid::VectorXd getCurrentJointAngles(cnoid::BodyPtr body);
+    bool executeJointMotion();
+    bool executeCartesianMotion(Link* wrist, JointPathPtr jointPath);
+
     // Model action
     bool updateAttachedModels ();
-    
+
     // Simulator configuration
     void setTimeStep (double seconds) { dt_ = seconds; }
     double getTimeStep () { return dt_; }
