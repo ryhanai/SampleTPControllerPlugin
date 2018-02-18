@@ -26,11 +26,13 @@ set(libname CnoidSampleHiroControllerPlugin)
 set(sources
   SampleHiroControllerPlugin.cpp
   SampleHiroController.cpp
+  UR3dualController.cpp
   ControllerFramework.cpp
   )
 
 set(headers
   SampleHiroController.h
+  UR3dualController.h
   ControllerFramework.h
   Interpolator.h
   gettext.h
@@ -38,7 +40,6 @@ set(headers
 
 include_directories(../teachingPlugin/Teaching ${PYTHON_INCLUDE_DIRS})
 add_cnoid_plugin(${libname} SHARED ${sources} ${headers})
-#target_link_libraries(${libname} CnoidTeachingPlugin) # This doesn't work. why???
 target_link_libraries(${libname} CnoidBodyPlugin CnoidTeachingPlugin)
 
 apply_common_setting_for_plugin(${libname} "${headers}")

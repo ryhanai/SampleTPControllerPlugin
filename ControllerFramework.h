@@ -99,8 +99,57 @@ namespace teaching
     int _n;
   };
 
-  class Controller : public ControllerBase
+  class ControllerException
   {
+  public:
+    ControllerException () { }
+    ControllerException (const std::string& message) { setMessage (message); }
+    virtual ~ControllerException () { }
+    const std::string& message () const { return message_; }
+    void setMessage (const std::string& message) { message_ = message; }
+  private:
+    std::string message_;
+  };
+
+  class RobotNotFoundException : public ControllerException
+  {
+  public:
+    RobotNotFoundException (const std::string& message) : ControllerException(message) { }
+  };
+
+  class ItemNotFoundException : public ControllerException
+  {
+  public:
+  };
+
+  class CommandNotFoundException : public ControllerException
+  {
+  public:
+  };
+
+  class UnexpectedArgumentException : public ControllerException
+  {
+  public:
+    UnexpectedArgumentException (boost::bad_get& e) {
+      setMessage(e.what());
+    }
+  };
+
+  class UndefinedToolException : public ControllerException
+  {
+  public:
+    UndefinedToolException (const int n) : ControllerException (std::to_string(n)) { }
+  };
+
+  class IKFailureException : public ControllerException
+  {
+  public:
+    IKFailureException (const std::string& message) : ControllerException (message) { };
+  };
+
+
+  class Controller : public ControllerBase
+    {
   public:
     Controller ();
 
@@ -140,7 +189,6 @@ namespace teaching
     CartesianInterpolator ci, ci2;
     
   private:
-    Command* getCommand(const std::string& internalName) { return commands_[internalName]; }
     std::map<std::string, Command*> commands_;
     std::vector<CommandDefParam*> commandDefs_;
     int registeredCommands_ = 1;

@@ -87,18 +87,30 @@ namespace teaching
 
   bool Controller::executeCommand(const std::string& commandName, const std::vector<CompositeParamType>& params, bool isReal)
   {
+    Command* cmd;
+
     try {
-      if ((*getCommand(commandName))(params)) {
-        return true;
-      } else {
-        attachedObjs_.clear();
-        return false;
-      }
+      cmd = commands_[commandName];
     } catch (...) {
-      //std::cerr << "unknown command: " << commandName << std::endl;
-      attachedObjs_.clear();
-      return false;
+      printLog ("Command ", commandName, " not found");
     }
+
+    try {
+      if ((*cmd)(params)) { return true; }
+    } catch (RobotNotFoundException& e) {
+      printLog ("Robot ", e.message(), " not found");
+    } catch (ItemNotFoundException& e) {
+      printLog ("Item ", e.message(), " not found");
+    } catch (UndefinedToolException& e) {
+      printLog ("Undefined tool ", e.message());
+    } catch (IKFailureException& e) {
+      printLog ("IK failure ", e.message());
+    } catch (boost::bad_get& e) {
+      printLog ("Unexpected Argument ", e.what());
+    }
+
+    attachedObjs_.clear();
+    return false;
   }
 
   bool Controller::attachModelItem (BodyItemPtr object, int target) // attach "object" to "target"
@@ -154,14 +166,23 @@ namespace teaching
 
   cnoid::Link* Controller::getToolLink(int toolNumber)
   {
-    BodyPtr robotBody = getRobotBody();
-    Link* link = robotBody->link(getToolLinkName(toolNumber));
-    return link;
+    try {
+      BodyPtr robotBody = getRobotBody();
+      Link* link = robotBody->link(getToolLinkName(toolNumber));
+      return link;
+    } catch (...) {
+      throw UndefinedToolException(toolNumber);
+    }
   }
 
   BodyItem* Controller::getRobotItem ()
   {
-    return findItemByName(rootName);
+    BodyItem* robotItem = findItemByName(rootName);
+    if (robotItem == NULL) {
+      throw RobotNotFoundException(rootName);
+    }
+
+    return robotItem;
   }
 
   BodyItem* Controller::findItemByName (const std::string& name)
@@ -191,7 +212,7 @@ namespace teaching
     for (int i = 0; i < n; i++) { q[i] = body->joint(i)->q(); }
     return q;
   }
-  
+
   bool Controller::updateAttachedModels ()
   {
     for (unsigned int index = 0; index<attachedObjs_.size(); index++) {
