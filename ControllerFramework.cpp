@@ -93,6 +93,7 @@ namespace teaching
       cmd = commands_[commandName];
     } catch (...) {
       printLog ("Command ", commandName, " not found");
+      return false;
     }
 
     try {
