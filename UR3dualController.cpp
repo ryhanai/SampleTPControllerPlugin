@@ -30,7 +30,7 @@ namespace teaching
     setToolLink(1, "RARM_JOINT5");
   }
 
-  bool UR3dualController::MoveArmCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool UR3dualController::MoveArmCommand::operator()(std::vector<CompositeParamType>& params)
   {
     Vector3 xyz(boost::get<VectorX>(params[0]));
     Vector3 rpy_tmp(boost::get<VectorX>(params[1]));
@@ -53,7 +53,7 @@ namespace teaching
     return c_->executeCartesianMotion(wrist, jointPath);
   }
 
-  bool UR3dualController::MoveGripperCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool UR3dualController::MoveGripperCommand::operator()(std::vector<CompositeParamType>& params)
   {
     double width = boost::get<double>(params[0]);
     double duration = boost::get<double>(params[1]);
@@ -83,7 +83,7 @@ namespace teaching
     return c_->executeGripperMotion(gripperLinks, width);
   }
 
-  bool UR3dualController::GoInitialCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool UR3dualController::GoInitialCommand::operator()(std::vector<CompositeParamType>& params)
   {
     double duration = boost::get<double>(params[0]);
 
@@ -107,7 +107,7 @@ namespace teaching
     return false;
   }
 
-  bool UR3dualController::MoveCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool UR3dualController::MoveCommand::operator()(std::vector<CompositeParamType>& params)
   {
     Vector3 leftHandXyz(boost::get<Vector3>(params[0]));
     Vector3 leftHandRpy(boost::get<Vector3>(params[1]));

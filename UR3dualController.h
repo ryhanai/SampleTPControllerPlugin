@@ -20,7 +20,7 @@ namespace teaching
     public:
       MoveArmCommand(UR3dualController* c) { c_ = c; }
       UR3dualController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class MoveGripperCommand : public Command
@@ -28,7 +28,7 @@ namespace teaching
     public:
       MoveGripperCommand(UR3dualController* c) { c_ = c; }
       UR3dualController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class GoInitialCommand : public Command
@@ -36,7 +36,7 @@ namespace teaching
     public:
       GoInitialCommand(UR3dualController* c) { c_ = c; }
       UR3dualController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class MoveCommand : public Command
@@ -44,7 +44,7 @@ namespace teaching
     public:
       MoveCommand(UR3dualController* c) { c_ = c; }
       UR3dualController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
   private:

@@ -20,7 +20,7 @@ namespace teaching
     public:
       MoveTorsoCommand(SampleHiroController* c) { c_ = c; }
       SampleHiroController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class MoveHeadCommand : public Command
@@ -28,7 +28,7 @@ namespace teaching
     public:
       MoveHeadCommand(SampleHiroController* c) { c_ = c; }
       SampleHiroController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class MoveArmCommand : public Command
@@ -36,7 +36,7 @@ namespace teaching
     public:
       MoveArmCommand(SampleHiroController* c) { c_ = c; }
       SampleHiroController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class MoveGripperCommand : public Command
@@ -44,7 +44,7 @@ namespace teaching
     public:
       MoveGripperCommand(SampleHiroController* c) { c_ = c; }
       SampleHiroController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class ScrewCommand : public Command
@@ -52,7 +52,7 @@ namespace teaching
     public:
       ScrewCommand(SampleHiroController* c) { c_ = c; }
       SampleHiroController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class GoInitialCommand : public Command
@@ -60,7 +60,7 @@ namespace teaching
     public:
       GoInitialCommand(SampleHiroController* c) { c_ = c; }
       SampleHiroController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
     class MoveCommand : public Command
@@ -68,7 +68,15 @@ namespace teaching
     public:
       MoveCommand(SampleHiroController* c) { c_ = c; }
       SampleHiroController* c_;
-      virtual bool operator()(const std::vector<CompositeParamType>& params);
+      virtual bool operator()(std::vector<CompositeParamType>& params);
+    };
+
+    class MoveGripperTestCommand : public Command
+    {
+    public:
+      MoveGripperTestCommand(SampleHiroController* c) { c_ = c; }
+      SampleHiroController* c_;
+      virtual bool operator()(std::vector<CompositeParamType>& params);
     };
 
   private:

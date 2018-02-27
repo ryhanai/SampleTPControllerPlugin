@@ -82,21 +82,29 @@ namespace teaching
   class A
   {
   public:
-    A (std::string name, std::string type, int numElms)
+    enum class var_prop: int
+    {
+      in, out, inout
+    };
+
+    A (std::string name, std::string type, int numElms, var_prop direction = var_prop::in)
     {
       _name = name;
       _type = type;
       _n = numElms;
+      _d = direction;
     }
 
     std::string name() { return _name; }
     std::string type() { return _type; }
     int numElms() { return _n; }
+    var_prop direction() { return _d; }
 
   private:
     std::string _name;
     std::string _type;
     int _n;
+    var_prop _d;
   };
 
   class ControllerException
@@ -156,12 +164,12 @@ namespace teaching
     class Command
     {
     public:
-      virtual bool operator() (const std::vector<CompositeParamType>& params) = 0;
+      virtual bool operator() (std::vector<CompositeParamType>& params) = 0;
     };
 
     // Methods called by teachingPlugin
     std::vector<CommandDefParam*> getCommandDefList();
-    virtual bool executeCommand(const std::string& commandName, const std::vector<CompositeParamType>& params, bool isReal=true);
+    virtual bool executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params, bool isReal=true);
     bool attachModelItem(cnoid::BodyItemPtr object, int target);
     bool detachModelItem(cnoid::BodyItemPtr object, int target);
 

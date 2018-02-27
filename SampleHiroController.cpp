@@ -30,7 +30,7 @@ namespace teaching
     setToolLink(1, "RARM_JOINT5");
   }
 
-  bool SampleHiroController::MoveTorsoCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool SampleHiroController::MoveTorsoCommand::operator()(std::vector<CompositeParamType>& params)
   {
     double angle = toRad(boost::get<double>(params[0]));
     double duration = boost::get<double>(params[1]);
@@ -47,7 +47,7 @@ namespace teaching
     return c_->executeJointMotion();
   }
 
-  bool SampleHiroController::MoveHeadCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool SampleHiroController::MoveHeadCommand::operator()(std::vector<CompositeParamType>& params)
   {
     VectorX angles = (boost::get<Vector2>(params[0]));
     VectorX angles2 = toRad(angles);
@@ -66,7 +66,7 @@ namespace teaching
     return c_->executeJointMotion();
   }
 
-  bool SampleHiroController::MoveArmCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool SampleHiroController::MoveArmCommand::operator()(std::vector<CompositeParamType>& params)
   {
     Vector3 xyz(boost::get<VectorX>(params[0]));
     Vector3 rpy_tmp(boost::get<VectorX>(params[1]));
@@ -94,7 +94,7 @@ namespace teaching
     }
   }
 
-  bool SampleHiroController::MoveGripperCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool SampleHiroController::MoveGripperCommand::operator()(std::vector<CompositeParamType>& params)
   {
     double width = boost::get<double>(params[0]);
     double duration = boost::get<double>(params[1]);
@@ -114,7 +114,7 @@ namespace teaching
     return c_->executeGripperMotion(gripperLinks, width);
   }
 
-  bool SampleHiroController::ScrewCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool SampleHiroController::ScrewCommand::operator()(std::vector<CompositeParamType>& params)
   {
     double torque = boost::get<double>(params[0]);
     double max_depth = boost::get<double>(params[1]);
@@ -127,7 +127,7 @@ namespace teaching
     return true;
   }
 
-  bool SampleHiroController::GoInitialCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool SampleHiroController::GoInitialCommand::operator()(std::vector<CompositeParamType>& params)
   {
     double duration = boost::get<double>(params[0]);
 
@@ -151,7 +151,7 @@ namespace teaching
     return false;
   }
 
-  bool SampleHiroController::MoveCommand::operator()(const std::vector<CompositeParamType>& params)
+  bool SampleHiroController::MoveCommand::operator()(std::vector<CompositeParamType>& params)
   {
     Vector3 leftHandXyz(boost::get<Vector3>(params[0]));
     Vector3 leftHandRpy(boost::get<Vector3>(params[1]));
@@ -185,6 +185,23 @@ namespace teaching
     return c_->executeDualArmMotion();
   }
 
+  bool SampleHiroController::MoveGripperTestCommand::operator()(std::vector<CompositeParamType>& params)
+  {
+    double width = boost::get<double>(params[0]);
+    double duration = boost::get<double>(params[1]);
+    int gripperID = boost::get<int>(params[2]);
+    printLog("moveGripperTest(", width, ", ", duration, ", ", gripperID, ")");
+
+    cnoid::VectorX result(3);
+    result[0] = 1.23;
+    result[1] = 9.87;
+    result[2] = 7.53;
+    CompositeParamType retVal = result;
+    params[3] = retVal;
+
+    return true;
+  }
+
   void SampleHiroController::registerCommands()
   {
     registerCommand("moveTorso", "Torso", "boolean", {A("angle", "double", 1), A("tm", "double", 1)},
@@ -205,6 +222,10 @@ namespace teaching
                     {A("leftHandXyz", "double", 3), A("leftHandRpy", "double", 3), A("rightHandXyz", "double", 3),
                         A("rightHandRpy", "double", 3), A("torsoAngle", "double", 1), A("tm", "double", 1)},
                     new MoveCommand(this));
+    registerCommand("moveGripperTest", "GripperTest", "boolean",
+                    {A("width", "double", 1), A("tm", "double", 1), A("gripperID", "int", 1),
+                        A("result", "double", 3, A::var_prop::out)},
+                    new MoveGripperTestCommand(this));
   }
 
   bool SampleHiroController::executeDualArmMotion()
