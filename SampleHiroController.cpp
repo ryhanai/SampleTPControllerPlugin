@@ -192,11 +192,14 @@ namespace teaching
     int gripperID = boost::get<int>(params[2]);
     printLog("moveGripperTest(", width, ", ", duration, ", ", gripperID, ")");
 
-    cnoid::VectorX result(3);
-    result[0] = 1.23;
-    result[1] = 9.87;
-    result[2] = 7.53;
-    CompositeParamType retVal = result;
+    //cnoid::VectorX result(3);
+    //result[0] = 1.23;
+    //result[1] = 9.87;
+    //result[2] = 7.53;
+    //CompositeParamType retVal = result;
+
+    double intRet = 0.12345;
+    CompositeParamType retVal = intRet;
     params[3] = retVal;
 
     return true;
@@ -224,7 +227,7 @@ namespace teaching
                     new MoveCommand(this));
     registerCommand("moveGripperTest", "GripperTest", "boolean",
                     {A("width", "double", 1), A("tm", "double", 1), A("gripperID", "int", 1),
-                        A("result", "double", 3, A::var_prop::out)},
+                        A("result", "double", 1, A::var_prop::out)},
                     new MoveGripperTestCommand(this));
   }
 
