@@ -30,7 +30,7 @@ public:
     bar->addButton("Test")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onTestButtonClicked, this));
     addToolBar(bar);
     ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
-    ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
+    // ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
 
     return true;
   }
