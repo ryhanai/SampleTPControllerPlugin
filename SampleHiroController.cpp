@@ -153,11 +153,11 @@ namespace teaching
 
   bool SampleHiroController::MoveCommand::operator()(std::vector<CompositeParamType>& params)
   {
-    Vector3 leftHandXyz(boost::get<Vector3>(params[0]));
-    Vector3 leftHandRpy(boost::get<Vector3>(params[1]));
+    Vector3 leftHandXyz(boost::get<VectorX>(params[0]));
+    Vector3 leftHandRpy(boost::get<VectorX>(params[1]));
     Vector3 leftHandRpy2 = toRad(leftHandRpy);
-    Vector3 rightHandXyz(boost::get<Vector3>(params[2]));
-    Vector3 rightHandRpy(boost::get<Vector3>(params[3]));
+    Vector3 rightHandXyz(boost::get<VectorX>(params[2]));
+    Vector3 rightHandRpy(boost::get<VectorX>(params[3]));
     Vector3 rightHandRpy2 = toRad(rightHandRpy);
     double torsoAngle2 = toRad(boost::get<double>(params[4]));
     double duration = boost::get<double>(params[5]);
