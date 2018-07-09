@@ -30,13 +30,13 @@ public:
     ToolBar* bar = new ToolBar("SampleHiroController");
     bar->addButton("Test")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onTestButtonClicked, this));
     addToolBar(bar);
-    // ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
+    ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
     // ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
 
     ToolBar* barft = new ToolBar("FollowTrajectoryController");
     barft->addButton("publish sample trajectory")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onPubTrajButtonClicked, this));
     addToolBar(barft);
-    ControllerManager::instance()->registController("FollowTrajectoryController", FollowTrajectoryController::instance());
+    // ControllerManager::instance()->registController("FollowTrajectoryController", FollowTrajectoryController::instance());
 
     return true;
   }
