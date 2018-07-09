@@ -24,22 +24,10 @@ public:
 
   virtual bool initialize()
   {
-    ToolBar* bar = new ToolBar("FollowTrajectoryController");
-    bar->addButton("publish sample trajectory")->sigClicked().connect(bind(&FollowTrajectoryControllerPlugin::onTestButtonClicked, this));
-    addToolBar(bar);
-
-    ControllerManager::instance()->registController("FollowTrajectoryController", FollowTrajectoryController::instance());
 
     return true;
   }
 
-  void onTestButtonClicked()
-  {
-    ControllerBase* handler = ControllerManager::instance()->getController("FollowTrajectoryController");
-    handler->setRootName("main_withHands");
-
-    FollowTrajectoryController::instance()->sendTrajectory();
-  }
 
 };
 

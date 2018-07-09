@@ -8,6 +8,7 @@
 #include <boost/bind.hpp>
 #include "SampleHiroController.h"
 #include "UR3dualController.h"
+#include "FollowTrajectoryControllerROS.h"
 #include "ControllerManager.h"
 
 using namespace cnoid;
@@ -29,8 +30,13 @@ public:
     ToolBar* bar = new ToolBar("SampleHiroController");
     bar->addButton("Test")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onTestButtonClicked, this));
     addToolBar(bar);
-    ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
+    // ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
     // ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
+
+    ToolBar* barft = new ToolBar("FollowTrajectoryController");
+    barft->addButton("publish sample trajectory")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onPubTrajButtonClicked, this));
+    addToolBar(barft);
+    ControllerManager::instance()->registController("FollowTrajectoryController", FollowTrajectoryController::instance());
 
     return true;
   }
@@ -69,6 +75,14 @@ public:
     // params.push_back(double);
     // params.push_back(0);
     // handler->executeCommand(commandName, params, true);
+  }
+
+  void onPubTrajButtonClicked()
+  {
+    ControllerBase* handler = ControllerManager::instance()->getController("FollowTrajectoryController");
+    handler->setRootName("main_withHands");
+
+    FollowTrajectoryController::instance()->sendTrajectory();
   }
 
 };

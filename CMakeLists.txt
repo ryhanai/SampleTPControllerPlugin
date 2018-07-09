@@ -16,9 +16,17 @@ if(NOT ENABLE_PYTHON)
 endif()
 
 if(USE_ROS)
+  find_package(Eigen3 REQUIRED)
+
   find_package(catkin REQUIRED COMPONENTS
     roscpp
     trajectory_msgs
+    geometric_shapes
+    interactive_markers
+    moveit_core
+    moveit_ros_planning_interface
+    moveit_visual_tools
+    pluginlib
     )
 endif(USE_ROS)
 
@@ -47,28 +55,37 @@ set(headers
   gettext.h
   )
 
-include_directories(../teachingPlugin/Teaching ${PYTHON_INCLUDE_DIRS})
-add_cnoid_plugin(${libname} SHARED ${sources} ${headers})
-target_link_libraries(${libname} CnoidBodyPlugin CnoidTeachingPlugin)
+set(includes
+  ../teachingPlugin/Teaching
+  ${PYTHON_INCLUDE_DIRS}
+  )
+set(libs
+  CnoidBodyPlugin
+  CnoidTeachingPlugin
+  )
 
 if(USE_ROS)
   set(sources
     ${sources}
-    FollowTrajectoryControllerPlugin.cpp
     FollowTrajectoryControllerROS.cpp
     )
   set(headers
     ${headers}
     FollowTrajectoryControllerROS.h
     )
-  set(${include_directories}
+  set(includes
+    ${includes}
     ${catkin_INCLUDE_DIRS}
     )
-  set(${target_link_libraries}
+  set(libs
+    ${libs}
     ${catkin_LIBRARIES}
     )
-endif(USE_ROS)
+ endif(USE_ROS)
 
+include_directories(${includes})
+add_cnoid_plugin(${libname} SHARED ${sources} ${headers})
+target_link_libraries(${libname} ${libs})
 
 apply_common_setting_for_plugin(${libname} "${headers}")
 
