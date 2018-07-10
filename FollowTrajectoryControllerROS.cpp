@@ -3,14 +3,12 @@
 */
 
 #include <sstream>
+#include <cnoid/ValueTree> // for Listing
 #include "FollowTrajectoryControllerROS.h"
 
 #include <cnoid/RootItem>
 #include <cnoid/BodyItem>
-
-
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <QCoreApplication>
 
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/DisplayTrajectory.h>
@@ -22,9 +20,12 @@
 
 using namespace cnoid;
 
+
 namespace teaching
 {
 
+  namespace pi = moveit::planning_interface;
+  
   FollowTrajectoryController* FollowTrajectoryController::instance()
   {
     static FollowTrajectoryController* controller = new FollowTrajectoryController();
@@ -48,10 +49,47 @@ namespace teaching
 
     node_ = boost::shared_ptr<ros::NodeHandle>(new ros::NodeHandle());
     traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(topic_name_, 1);
+    js_sub_ = node_->subscribe("/joint_states", 1, &FollowTrajectoryController::updateState, this);
     spinner_ = boost::shared_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(1));
     spinner_->start();
+
+    planning_scene_interface_ = boost::shared_ptr<pi::PlanningSceneInterface>(new pi::PlanningSceneInterface);
+    rarm_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryController::RARM_GROUP));
+    larm_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryController::LARM_GROUP));
+    ubody_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryController::UBODY_GROUP));
   }
 
+  bool FollowTrajectoryController::MoveArmCommand::doMove(boost::shared_ptr<pi::MoveGroupInterface> arm_group,
+                                                          geometry_msgs::Pose& target_pose,
+                                                          const std::string& arm_group_name)
+  {
+    const robot_state::JointModelGroup* arm_joint_model_group =
+      arm_group->getCurrentState()->getJointModelGroup(arm_group_name);
+    arm_group->setPoseTarget(target_pose);
+
+    pi::MoveGroupInterface::Plan my_plan;
+    bool success = (arm_group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS);
+    printLog("plan for target_pose1: ", success ? "SUCCEEDED" : "FAILED");
+
+    trajectory_msgs::JointTrajectory& jt = my_plan.trajectory_.joint_trajectory;
+    std::cout << "Number of joints: " << jt.joint_names.size() << std::endl;
+    for (const auto& name : jt.joint_names) { std::cout << name << " "; }
+    std::cout << std::endl;
+
+    std::cout << "Number of points: " << jt.points.size() << std::endl;
+    int np = 0;
+    for (const auto& p : jt.points) {
+      std::cout << "Point: " << np++ << "," << "Time: " << p.time_from_start << std::endl;
+      for (const auto& x : p.positions) {
+        std::cout << x << " ";
+      }
+      std::cout << std::endl;
+    }
+
+    arm_group->move();
+    return success;
+    // ros::shutdown()
+  }
 
   bool FollowTrajectoryController::MoveArmCommand::operator()(std::vector<CompositeParamType>& params)
   {
@@ -63,19 +101,19 @@ namespace teaching
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
     try {
-      // transform xyz,rpy to WASIT-based
-      // convert the rotation to matrix, then quaternion
+      // Transform xyz,rpy to WASIT-based and convert the rotation to quaternion
       BodyPtr body = c_->getRobotBody();
       Link* waistLink = body->link("WAIST");
-
-      Position waistToWristT; // Eigen::Transform
+      Position waistToWristT; // Position == Eigen::Transform
       Position wristT;
       wristT.linear() = rotFromRpy(rpy);
       wristT.translation() = xyz;
       waistToWristT = waistLink->T().inverse() * wristT;
-      std::cout << waistToWristT.linear() << std::endl;
-      std::cout << waistToWristT.translation() << std::endl;
+      // std::cout << waistToWristT.linear() << std::endl;
+      // std::cout << waistToWristT.translation() << std::endl;
       Eigen::Quaterniond quat(waistToWristT.linear());
+
+      // now send (quat, waistToWristT.translation()) by packing to a ROS message
       geometry_msgs::Pose target_pose1;
       target_pose1.orientation.x = quat.x();
       target_pose1.orientation.y = quat.y();
@@ -84,65 +122,11 @@ namespace teaching
       target_pose1.position.x = waistToWristT.translation().x();
       target_pose1.position.y = waistToWristT.translation().y();
       target_pose1.position.z = waistToWristT.translation().z();
-
-      // now send (quat, waistToWristT.translation())
-
-      static const std::string RARM_GROUP = "right_arm_torso";
-      static const std::string LARM_GROUP = "left_arm_torso";
-
-      moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-      namespace rvt = rviz_visual_tools;
-      moveit_visual_tools::MoveItVisualTools visual_tools("RARM_JOINT5_Link");
-      visual_tools.deleteAllMarkers();
-
       if (armID == 0) {
-        moveit::planning_interface::MoveGroupInterface larm_group(LARM_GROUP);
-        const robot_state::JointModelGroup* larm_joint_model_group =
-          larm_group.getCurrentState()->getJointModelGroup(LARM_GROUP);
-        larm_group.setPoseTarget(target_pose1);
-        moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-        bool success = (larm_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-        printLog("plan for target_pose1: ", success ? "SUCCEEDED" : "FAILED");
-
-        visual_tools.publishAxisLabeled(target_pose1, "pose1");
-        visual_tools.publishTrajectoryLine(my_plan.trajectory_, larm_joint_model_group);
-        visual_tools.trigger(); // Batch publishing
-
-        // my_plan.trajectory_ : moveit_msgs::RobotTrajectory.msg
-        trajectory_msgs::JointTrajectory& jt = my_plan.trajectory_.joint_trajectory;
-        std::cout << "Number of joints: " << jt.joint_names.size() << std::endl;
-        for (const auto& name : jt.joint_names) {
-          std::cout << name << " ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "Number of points: " << jt.points.size() << std::endl;
-        int np = 0;
-        for (const auto& p : jt.points) {
-          std::cout << "Point: " << np++ << "," << "Time: " << p.time_from_start << std::endl;
-          for (const auto& x : p.positions) {
-            std::cout << x << " ";
-          }
-          std::cout << std::endl;
-        }
-
-        larm_group.move();
-
-        // ros::shutdown()
+        return doMove(c_->larm_group_, target_pose1, FollowTrajectoryController::LARM_GROUP);
       } else {
-        // moveit::planning_interface::MoveGroupInterface rarm_group(RARM_GROUP);
-        // const robot_state::JointModelGroup* rarm_joint_model_group =
-        //   rarm_group.getCurrentState()->getJointModelGroup(RARM_GROUP);
-        // rarm_group.setPoseTarget(target_pose1);
-        // moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-        // bool success = (rarm_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+        return doMove(c_->rarm_group_, target_pose1, FollowTrajectoryController::RARM_GROUP);
       }
-
-      // pack to ROS message
-      // send it to move_group
-      // receive the plan
-      // and play it in Choreonoid
-      // subscribe to /joint_state and update the local model
 
 
 #if 0 // move the robot model explicitly in the simulator
@@ -161,6 +145,77 @@ namespace teaching
     } catch (...) {
       printLog("unknown armID: ", armID);
       return false;
+    }
+  }
+
+  bool FollowTrajectoryController::MoveGripperCommand::operator()(std::vector<CompositeParamType>& params)
+  {
+    double width = boost::get<double>(params[0]);
+    double duration = boost::get<double>(params[1]);
+    int gripperID = boost::get<int>(params[2]);
+    printLog("moveGripper(", width, ", ", duration, ", ", gripperID, ")");
+
+    return true;
+  }
+
+  bool FollowTrajectoryController::GoInitialCommand::operator()(std::vector<CompositeParamType>& params)
+  {
+    double duration = boost::get<double>(params[0]);
+
+    BodyPtr body = c_->getRobotBody();
+    VectorXd qCur = c_->getCurrentJointAngles(body);
+
+    moveit::core::RobotStatePtr current_state = c_->ubody_group_->getCurrentState();
+    const robot_state::JointModelGroup* joint_model_group
+      = c_->ubody_group_->getCurrentState()->getJointModelGroup(FollowTrajectoryController::UBODY_GROUP);
+    // Next get the current set of joint values for the group.
+    std::vector<double> joint_group_positions;
+    current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+
+    // for (const auto& n : joint_model_group->getVariableNames()) { printLog(n, " "); }
+    // CHEST_JOINT0, HEAD_JOINT0 - 1, LARM_JOINT0 - 5, RARM_JOINT0 - 5
+    // In choreonoid, the order of LARM_JOINTs and RARM_joints is opposite.
+    pi::MoveGroupInterface::Plan my_plan;
+    bool success = false;
+    const Listing& pose = *body->info()->findListing("standardPose");
+    if(pose.isValid()){
+      const int nn = std::min(pose.size(), (int)joint_group_positions.size());
+      for (int i = 0; i < 3; i++){
+        joint_group_positions[i] = radian(pose[i].toDouble());
+      }
+      for (int i = 3; i < 9; i++){
+        joint_group_positions[i+6] = radian(pose[i].toDouble());
+      }
+      for (int i = 9; i < 15; i++){
+        joint_group_positions[i-6] = radian(pose[i].toDouble());
+      }
+      c_->ubody_group_->setJointValueTarget(joint_group_positions);
+      success = c_->ubody_group_->plan(my_plan) == pi::MoveItErrorCode::SUCCESS;
+      c_->ubody_group_->move();
+    }
+
+    return success;
+  }
+
+  void FollowTrajectoryController::updateState(const sensor_msgs::JointState::ConstPtr& jointstate)
+  {
+    try {
+      // avoid accessing robot item before loading
+      BodyItem* robotItem = getRobotItem();
+      BodyPtr body = getRobotBody();
+      // for (int i = 0; i < body->numJoints(); i++) {
+
+      // The order of joints is the same as Choreonoid in /joint_states
+      for (int i = 0; i < 15; i++) {
+        body->joint(i)->q() = jointstate->position[i];
+      }
+
+      updateAttachedModels();
+      robotItem->notifyKinematicStateChange(true);
+      QCoreApplication::processEvents();
+
+    } catch (...) {
+      
     }
   }
 
@@ -241,7 +296,7 @@ namespace teaching
 
     // wait the completion of the execution
     // update the robot status in Scene View on the completion
-
+    // subscribe to /joint_state and update the local model
   }
 
   void FollowTrajectoryController::registerCommands()
@@ -249,6 +304,11 @@ namespace teaching
     registerCommand("moveArm", "Arm", "boolean",
                     {A("xyz", "double", 3), A("rpy", "double", 3), A("tm", "double", 1), A("armID", "int", 1)},
                     new MoveArmCommand(this)); // 0=left, 1=right
+    registerCommand("moveGripper", "Gripper", "boolean",
+                    {A("width", "double", 1), A("tm", "double", 1), A("gripperID", "int", 1)},
+                    new MoveGripperCommand(this)); // 0=left, 1=right
+    registerCommand("goInitial", "Initial Pose", "boolean", {A("tm", "double", 1)},
+                    new GoInitialCommand(this));
   }
 
 }

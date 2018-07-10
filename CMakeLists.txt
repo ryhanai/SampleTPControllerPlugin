@@ -20,6 +20,7 @@ if(USE_ROS)
 
   find_package(catkin REQUIRED COMPONENTS
     roscpp
+    sensor_msgs
     trajectory_msgs
     geometric_shapes
     interactive_markers
