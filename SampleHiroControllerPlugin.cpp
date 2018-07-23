@@ -8,7 +8,9 @@
 #include <boost/bind.hpp>
 #include "SampleHiroController.h"
 #include "UR3dualController.h"
+#ifdef ROS_ON
 #include "FollowTrajectoryControllerROS.h"
+#endif
 #include "ControllerManager.h"
 
 using namespace cnoid;
@@ -48,7 +50,7 @@ public:
     std::vector<CompositeParamType> params;
     double duration = 1.0;
     params.push_back(duration);
-    handler->executeCommand("goInitial", params, true);
+    handler->executeCommand("goInitial", params);
 
     params.clear();
     double width = 0.3;
@@ -56,7 +58,7 @@ public:
     params.push_back(width);
     params.push_back(duration);
     params.push_back(gripperID);
-    handler->executeCommand("moveGripper", params, true);
+    handler->executeCommand("moveGripper", params);
 
 // std::string commandName = "moveArm";
     // std::vector<CompositeParamType>& params;
@@ -82,7 +84,9 @@ public:
     ControllerBase* handler = ControllerManager::instance()->getController("FollowTrajectoryController");
     handler->setRootName("main_withHands");
 
+#ifdef ROS_ON
     FollowTrajectoryController::instance()->sendTrajectory();
+#endif
   }
 
 };

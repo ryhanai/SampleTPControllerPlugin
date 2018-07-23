@@ -2,8 +2,11 @@
 # @author Ryo Hanai
 
 option(BUILD_SAMPLE_HIRO_CONTROLLER "Building a sample hiro controller for teaching plugin" ON)
-
-set(USE_ROS ON)
+if(WIN32)
+  option(USE_ROS "Use ROS" OFF)
+else()
+  option(USE_ROS "Use ROS" ON)
+endif()
 
 if(NOT BUILD_SAMPLE_HIRO_CONTROLLER)
   return()
@@ -29,6 +32,8 @@ if(USE_ROS)
     moveit_visual_tools
     pluginlib
     )
+
+    add_definitions(-DROS_ON)
 endif(USE_ROS)
 
 if(UNIX)

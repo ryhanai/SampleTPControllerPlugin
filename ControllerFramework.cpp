@@ -85,7 +85,7 @@ namespace teaching
 
   std::vector<CommandDefParam*> Controller::getCommandDefList() { return commandDefs_; }
 
-  bool Controller::executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params, bool isReal)
+  bool Controller::executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params)
   {
     Command* cmd;
 

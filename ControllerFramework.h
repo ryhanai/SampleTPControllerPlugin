@@ -169,7 +169,7 @@ namespace teaching
 
     // Methods called by teachingPlugin
     std::vector<CommandDefParam*> getCommandDefList();
-    virtual bool executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params, bool isReal=true);
+    virtual bool executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params);
     bool attachModelItem(cnoid::BodyItemPtr object, int target);
     bool detachModelItem(cnoid::BodyItemPtr object, int target);
 
