@@ -9,6 +9,7 @@
 #include "SampleHiroController.h"
 #include "UR3dualController.h"
 #include "FollowTrajectoryControllerROS.h"
+#include "FollowTrajectoryControllerUR3Dual.h"
 #include "ControllerManager.h"
 
 using namespace cnoid;
@@ -30,35 +31,39 @@ public:
     ToolBar* bar = new ToolBar("SampleHiroController");
     bar->addButton("Test")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onTestButtonClicked, this));
     addToolBar(bar);
-    ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
-    // ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
+    // ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
+    ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
 
     ToolBar* barft = new ToolBar("FollowTrajectoryController");
-    barft->addButton("publish sample trajectory")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onPubTrajButtonClicked, this));
+    barft->addButton("Sycn with Real")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onTestButtonClicked, this));
     addToolBar(barft);
+
     // ControllerManager::instance()->registController("FollowTrajectoryController", FollowTrajectoryController::instance());
+    ControllerManager::instance()->registController("FollowTrajectoryControllerUR3Dual", FollowTrajectoryControllerUR3Dual::instance());
 
     return true;
   }
 
   void onTestButtonClicked()
   {
-    ControllerBase* handler = ControllerManager::instance()->getController("UR3dualController");
+    FollowTrajectoryControllerUR3Dual* handler =
+      (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
-    std::vector<CompositeParamType> params;
-    double duration = 1.0;
-    params.push_back(duration);
-    handler->executeCommand("goInitial", params, true);
+    handler->syncWithReal();
+    // std::vector<CompositeParamType> params;
+    // double duration = 1.0;
+    // params.push_back(duration);
+    // handler->executeCommand("goInitial", params, true);
 
-    params.clear();
-    double width = 0.3;
-    int gripperID = 0;
-    params.push_back(width);
-    params.push_back(duration);
-    params.push_back(gripperID);
-    handler->executeCommand("moveGripper", params, true);
+    // params.clear();
+    // double width = 0.3;
+    // int gripperID = 0;
+    // params.push_back(width);
+    // params.push_back(duration);
+    // params.push_back(gripperID);
+    // handler->executeCommand("moveGripper", params, true);
 
-// std::string commandName = "moveArm";
+    // std::string commandName = "moveArm";
     // std::vector<CompositeParamType>& params;
     // VectorXd xyz(3);
     // xyz(0) = 0.0;

@@ -69,10 +69,12 @@ if(USE_ROS)
   set(sources
     ${sources}
     FollowTrajectoryControllerROS.cpp
+    FollowTrajectoryControllerUR3Dual.cpp
     )
   set(headers
     ${headers}
     FollowTrajectoryControllerROS.h
+    FollowTrajectoryControllerUR3Dual.h
     )
   set(includes
     ${includes}
