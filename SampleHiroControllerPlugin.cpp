@@ -8,8 +8,11 @@
 #include <boost/bind.hpp>
 #include "SampleHiroController.h"
 #include "UR3dualController.h"
+#ifdef ROS_ON
 #include "FollowTrajectoryControllerROS.h"
 #include "FollowTrajectoryControllerUR3Dual.h"
+#endif
+
 #include "ControllerManager.h"
 
 using namespace cnoid;
@@ -87,7 +90,9 @@ public:
     ControllerBase* handler = ControllerManager::instance()->getController("FollowTrajectoryController");
     handler->setRootName("main_withHands");
 
+#ifdef ROS_ON
     FollowTrajectoryController::instance()->sendTrajectory();
+#endif
   }
 
 };
