@@ -76,22 +76,26 @@ namespace teaching
     printLog("plan for target_pose1: ", success ? "SUCCEEDED" : "FAILED");
 
     trajectory_msgs::JointTrajectory& jt = my_plan.trajectory_.joint_trajectory;
-    std::cout << "Number of joints: " << jt.joint_names.size() << std::endl;
-    for (const auto& name : jt.joint_names) { std::cout << name << " "; }
-    std::cout << std::endl;
 
-    std::cout << "Number of points: " << jt.points.size() << std::endl;
-    int np = 0;
-    for (const auto& p : jt.points) {
-      std::cout << "Point: " << np++ << "," << "Time: " << p.time_from_start << std::endl;
-      for (const auto& x : p.positions) {
-        std::cout << x << " ";
-      }
+    if (success) {
+      std::cout << "Number of joints: " << jt.joint_names.size() << std::endl;
+      for (const auto& name : jt.joint_names) { std::cout << name << " "; }
       std::cout << std::endl;
-    }
+      std::cout << "Number of points: " << jt.points.size() << std::endl;
+      int np = 0;
+      for (const auto& p : jt.points) {
+        std::cout << "Point: " << np++ << "," << "Time: " << p.time_from_start << std::endl;
+        for (const auto& x : p.positions) {
+          std::cout << x << " ";
+        }
+        std::cout << std::endl;
+      }
 
-    arm_group->move();
-    return success;
+      arm_group->move();
+    } else {
+      return false;
+    }
+    
     // ros::shutdown()
   }
 
@@ -104,47 +108,58 @@ namespace teaching
     int armID = boost::get<int>(params[3]);
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
-    try {
-      // Transform xyz,rpy to WASIT-based and convert the rotation to quaternion
-      BodyPtr body = c_->getRobotBody();
-      Link* base = body->rootLink();
-      // Link* wrist = body->link(c_->getToolLinkName(armID));
+    // Transform xyz,rpy to WASIT-based and convert the rotation to quaternion
+    BodyPtr body = c_->getRobotBody();
+    Link* base = body->rootLink();
+    // Link* wrist = body->link(c_->getToolLinkName(armID));
 
-      // std::cout << waistToWristT.linear() << std::endl;
-      // std::cout << waistToWristT.translation() << std::endl;
-      Eigen::Quaterniond quat(rotFromRpy(rpy));
-      geometry_msgs::Pose target_pose1;
-      target_pose1.orientation.x = quat.x();
-      target_pose1.orientation.y = quat.y();
-      target_pose1.orientation.z = quat.z();
-      target_pose1.orientation.w = quat.w();
-      target_pose1.position.x = xyz[0];
-      target_pose1.position.y = xyz[1];
-      target_pose1.position.z = xyz[2];
-      if (armID == 0) {
-        return doMove(c_->larm_group_, target_pose1, FollowTrajectoryControllerUR3Dual::LARM_GROUP);
-      } else {
-        return doMove(c_->rarm_group_, target_pose1, FollowTrajectoryControllerUR3Dual::RARM_GROUP);
-      }
-
-
-#if 0 // move the robot model explicitly in the simulator
-      Link* base = body->rootLink();
-      Link* wrist = body->link(c_->getToolLinkName(armID));
-
-      JointPathPtr jointPath = getCustomJointPath(body, base, wrist);
-      jointPath->calcForwardKinematics();
-
-      c_->ci.clear();
-      c_->ci.appendSample(0, wrist->p(), wrist->attitude());
-      c_->ci.appendSample(duration, xyz, rotFromRpy(rpy));
-      c_->ci.update();
-      return c_->executeCartesianMotion(wrist, jointPath);
-#endif
-    } catch (...) {
-      printLog("unknown armID: ", armID);
-      return false;
+    // std::cout << waistToWristT.linear() << std::endl;
+    // std::cout << waistToWristT.translation() << std::endl;
+    Eigen::Quaterniond quat(rotFromRpy(rpy));
+    geometry_msgs::Pose target_pose1;
+    target_pose1.orientation.x = quat.x();
+    target_pose1.orientation.y = quat.y();
+    target_pose1.orientation.z = quat.z();
+    target_pose1.orientation.w = quat.w();
+    target_pose1.position.x = xyz[0];
+    target_pose1.position.y = xyz[1];
+    target_pose1.position.z = xyz[2];
+    if (armID == 0) {
+      return doMove(c_->larm_group_, target_pose1, FollowTrajectoryControllerUR3Dual::LARM_GROUP);
+    } else {
+      return doMove(c_->rarm_group_, target_pose1, FollowTrajectoryControllerUR3Dual::RARM_GROUP);
     }
+
+  }
+
+  bool FollowTrajectoryControllerUR3Dual::MoveGripperCommand::doMove(boost::shared_ptr<pi::MoveGroupInterface> gripper_group,
+                                                                     double target,
+                                                                     const std::string& gripper_group_name)
+  {
+    moveit::core::RobotStatePtr current_state = gripper_group->getCurrentState();
+    const robot_state::JointModelGroup* joint_model_group
+      = gripper_group->getCurrentState()->getJointModelGroup(gripper_group_name);
+    std::vector<double> joint_group_positions;
+    current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+
+    pi::MoveGroupInterface::Plan my_plan;
+    joint_group_positions[0] = target;
+    joint_group_positions[1] = -target;
+    joint_group_positions[2] = target;
+    joint_group_positions[3] = target;
+    joint_group_positions[4] = -target;
+    joint_group_positions[5] = target;
+    gripper_group->setJointValueTarget(joint_group_positions);
+    if (gripper_group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS) {
+      printLog("gripper_group->plan succeeded");
+    }
+    gripper_group->move();
+    // if (gripper_group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS) {
+    //   gripper_group->move();
+    //   return true;
+    // } else {
+    //   return false;
+    // }
   }
 
   bool FollowTrajectoryControllerUR3Dual::MoveGripperCommand::operator()(std::vector<CompositeParamType>& params)
@@ -158,7 +173,14 @@ namespace teaching
     const double a = -8.448133;
     const double b = 0.75585477;
     const double goal = a * width + b;
-    return true;
+
+    if (gripperID == 0) {
+      return doMove(c_->lhand_group_, goal, FollowTrajectoryControllerUR3Dual::LHAND_GROUP);
+    } else {
+      return doMove(c_->rhand_group_, goal, FollowTrajectoryControllerUR3Dual::RHAND_GROUP);
+    }
+
+    return false;
   }
 
   bool FollowTrajectoryControllerUR3Dual::GoInitialCommand::operator()(std::vector<CompositeParamType>& params)

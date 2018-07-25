@@ -45,6 +45,9 @@ namespace teaching
       MoveGripperCommand(FollowTrajectoryControllerUR3Dual* c) { c_ = c; }
       FollowTrajectoryControllerUR3Dual* c_;
       virtual bool operator()(std::vector<CompositeParamType>& params);
+      bool doMove(boost::shared_ptr<moveit::planning_interface::MoveGroupInterface> gripper_group,
+                  double target,
+                  const std::string& gripper_group_name);
     };
 
   class GoInitialCommand : public Command
