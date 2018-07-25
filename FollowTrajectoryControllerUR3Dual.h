@@ -56,6 +56,9 @@ namespace teaching
       GoInitialCommand(FollowTrajectoryControllerUR3Dual* c) { c_ = c; }
       FollowTrajectoryControllerUR3Dual* c_;
       virtual bool operator()(std::vector<CompositeParamType>& params);
+      bool doMove(boost::shared_ptr<moveit::planning_interface::MoveGroupInterface> group,
+                  std::vector<double>& joint_positions,
+                  const std::string& group_name);
     };
 
   private:

@@ -31,58 +31,117 @@ public:
 
   virtual bool initialize()
   {
-    ToolBar* bar = new ToolBar("SampleHiroController");
-    bar->addButton("Test")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onTestButtonClicked, this));
-    addToolBar(bar);
     // ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
     ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
 
-    ToolBar* barft = new ToolBar("FollowTrajectoryController");
-    barft->addButton("Sycn with Real")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onTestButtonClicked, this));
-    addToolBar(barft);
-
+    ToolBar* bar = new ToolBar("SampleHiroController");
+    bar->addButton("Sycn with Real")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onSyncButtonClicked, this));
+    bar->addButton("Initial Pose")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onInitialPoseButtonClicked, this));
+    bar->addButton("Pose1")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onPose1ButtonClicked, this));
+    bar->addButton("Pose2")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onPose2ButtonClicked, this));
+    bar->addButton("Pose3")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onPose3ButtonClicked, this));
+    addToolBar(bar);
+    bar->setVisibleByDefault(true);
+    
     // ControllerManager::instance()->registController("FollowTrajectoryController", FollowTrajectoryController::instance());
     ControllerManager::instance()->registController("FollowTrajectoryControllerUR3Dual", FollowTrajectoryControllerUR3Dual::instance());
 
     return true;
   }
 
-  void onTestButtonClicked()
+  void onSyncButtonClicked()
   {
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
     handler->syncWithReal();
-    // std::vector<CompositeParamType> params;
-    // double duration = 1.0;
-    // params.push_back(duration);
-    // handler->executeCommand("goInitial", params, true);
+  }
 
-    // params.clear();
-    // double width = 0.3;
-    // int gripperID = 0;
-    // params.push_back(width);
-    // params.push_back(duration);
-    // params.push_back(gripperID);
-    // handler->executeCommand("moveGripper", params, true);
+  void onPose1ButtonClicked()
+  {
+    FollowTrajectoryControllerUR3Dual* handler =
+      (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
+    handler->setRootName("main_withHands");
 
-    // std::string commandName = "moveArm";
-    // std::vector<CompositeParamType>& params;
-    // VectorXd xyz(3);
-    // xyz(0) = 0.0;
-    // xyz(1) = 0.0;
-    // xyz(2) = 0.0;
-    // VectorXd rpy(3);
-    // rpy(0) = 0.0;
-    // rpy(1) = 0.0;
-    // rpy(2) = 0.0;
-    // double duration = 1.0;
-    // int armID = 0;
-    // params.push_back(xyz);
-    // params.push_back(rpy);
-    // params.push_back(double);
-    // params.push_back(0);
-    // handler->executeCommand(commandName, params, true);
+    std::vector<CompositeParamType> params;
+    std::string commandName = "moveArm";
+    VectorXd xyz(3);
+    xyz(0) = 0.3057;
+    xyz(1) = 0.2363;
+    xyz(2) = 0.8578;
+    VectorXd rpy(3);
+    rpy(0) = -1.5;
+    rpy(1) = 1.3;
+    rpy(2) = -146.2;
+    double duration = 10.0;
+    int armID = 0;
+    params.push_back(xyz);
+    params.push_back(rpy);
+    params.push_back(duration);
+    params.push_back(armID);
+    handler->executeCommand(commandName, params);
+  }
+
+  void onPose2ButtonClicked()
+  {
+    FollowTrajectoryControllerUR3Dual* handler =
+      (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
+    handler->setRootName("main_withHands");
+
+    std::vector<CompositeParamType> params;
+    std::string commandName = "moveArm";
+    VectorXd xyz(3);
+    xyz(0) = 0.3239;
+    xyz(1) = 0.1863;
+    xyz(2) = 0.9657;
+    VectorXd rpy(3);
+    rpy(0) = 2.3;
+    rpy(1) = 29.2;
+    rpy(2) = -132.6;
+    double duration = 10.0;
+    int armID = 0;
+    params.push_back(xyz);
+    params.push_back(rpy);
+    params.push_back(duration);
+    params.push_back(armID);
+    handler->executeCommand(commandName, params);
+  }
+
+  void onPose3ButtonClicked()
+  {
+    FollowTrajectoryControllerUR3Dual* handler =
+      (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
+    handler->setRootName("main_withHands");
+
+    std::vector<CompositeParamType> params;
+    std::string commandName = "moveArm";
+    VectorXd xyz(3);
+    xyz(0) = 0.3483;
+    xyz(1) = -0.1176;
+    xyz(2) = 1.2746;
+    VectorXd rpy(3);
+    rpy(0) = -130.5;
+    rpy(1) = -4.7;
+    rpy(2) = 126.7;
+    double duration = 10.0;
+    int armID = 1;
+    params.push_back(xyz);
+    params.push_back(rpy);
+    params.push_back(duration);
+    params.push_back(armID);
+    handler->executeCommand(commandName, params);
+  }
+
+  void onInitialPoseButtonClicked()
+  {
+    FollowTrajectoryControllerUR3Dual* handler =
+      (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
+    handler->setRootName("main_withHands");
+
+    std::vector<CompositeParamType> params;
+    double duration = 10.0;
+    params.push_back(duration);
+    handler->executeCommand("goInitial", params);
   }
 
   void onPubTrajButtonClicked()

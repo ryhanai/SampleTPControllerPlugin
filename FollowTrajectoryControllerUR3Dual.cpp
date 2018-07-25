@@ -71,6 +71,8 @@ namespace teaching
       arm_group->getCurrentState()->getJointModelGroup(arm_group_name);
     arm_group->setPoseTarget(target_pose);
 
+    arm_group->setMaxVelocityScalingFactor(0.2);
+    
     pi::MoveGroupInterface::Plan my_plan;
     bool success = (arm_group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS);
     printLog("plan for target_pose1: ", success ? "SUCCEEDED" : "FAILED");
@@ -154,12 +156,6 @@ namespace teaching
       printLog("gripper_group->plan succeeded");
     }
     gripper_group->move();
-    // if (gripper_group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS) {
-    //   gripper_group->move();
-    //   return true;
-    // } else {
-    //   return false;
-    // }
   }
 
   bool FollowTrajectoryControllerUR3Dual::MoveGripperCommand::operator()(std::vector<CompositeParamType>& params)
@@ -183,42 +179,47 @@ namespace teaching
     return false;
   }
 
+  bool FollowTrajectoryControllerUR3Dual::GoInitialCommand::doMove(boost::shared_ptr<pi::MoveGroupInterface> group,
+                                                                   std::vector<double>& joint_positions,
+                                                                   const std::string& group_name)
+  {
+    moveit::core::RobotStatePtr current_state = group->getCurrentState();
+    const robot_state::JointModelGroup* joint_model_group = group->getCurrentState()->getJointModelGroup(group_name);
+    std::vector<double> joint_group_positions;
+    current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+    for (int i = 0; i < std::min(joint_group_positions.size(), joint_positions.size()); i++) {
+      joint_group_positions[i] = joint_positions[i];
+    }
+
+    pi::MoveGroupInterface::Plan my_plan;
+    group->setJointValueTarget(joint_group_positions);
+    if (group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS) { printLog("plan succeeded"); }
+    group->move();
+  }
+  
   bool FollowTrajectoryControllerUR3Dual::GoInitialCommand::operator()(std::vector<CompositeParamType>& params)
   {
     double duration = boost::get<double>(params[0]);
 
-    BodyPtr body = c_->getRobotBody();
-    VectorXd qCur = c_->getCurrentJointAngles(body);
+    std::vector<double> joint_positions;
+    joint_positions.resize(6);
 
-    moveit::core::RobotStatePtr current_state = c_->larm_group_->getCurrentState();
-    // const robot_state::JointModelGroup* joint_model_group
-    //   = c_->ubody_group_->getCurrentState()->getJointModelGroup(FollowTrajectoryControllerUR3Dual::UBODY_GROUP);
-    const robot_state::JointModelGroup* joint_model_group
-      = c_->larm_group_->getCurrentState()->getJointModelGroup(FollowTrajectoryControllerUR3Dual::LARM_GROUP);
+    joint_positions[0] = 60;
+    joint_positions[1] = -34;
+    joint_positions[2] = 78;
+    joint_positions[3] = -94;
+    joint_positions[4] = -218;
+    joint_positions[5] = -157;
+    // doMove(c_->rarm_group_, joint_positions, FollowTrajectoryControllerUR3Dual::RARM_GROUP);
+    joint_positions[0] = -64;
+    joint_positions[1] = -133;
+    joint_positions[2] = -70;
+    joint_positions[3] = 250;
+    joint_positions[4] = -160;
+    joint_positions[5] = -6;
+    // doMove(c_->larm_group_, joint_positions, FollowTrajectoryControllerUR3Dual::LARM_GROUP);
 
-    std::vector<double> joint_group_positions;
-    current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
-
-    pi::MoveGroupInterface::Plan my_plan;
-    bool success = false;
-    const Listing& pose = *body->info()->findListing("standardPose");
-    if(pose.isValid()){
-      const int nn = std::min(pose.size(), (int)joint_group_positions.size());
-      for (int i = 0; i < 3; i++){
-        joint_group_positions[i] = radian(pose[i].toDouble());
-      }
-      for (int i = 3; i < 9; i++){
-        joint_group_positions[i+6] = radian(pose[i].toDouble());
-      }
-      for (int i = 9; i < 15; i++){
-        joint_group_positions[i-6] = radian(pose[i].toDouble());
-      }
-      c_->larm_group_->setJointValueTarget(joint_group_positions);
-      success = c_->larm_group_->plan(my_plan) == pi::MoveItErrorCode::SUCCESS;
-      c_->larm_group_->move();
-    }
-
-    return success;
+    return true;
   }
 
   void FollowTrajectoryControllerUR3Dual::syncWithReal()
