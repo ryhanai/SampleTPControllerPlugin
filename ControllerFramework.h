@@ -202,7 +202,7 @@ namespace teaching
     int registeredCommands_ = 1;
 
     std::map<int, std::string> toolLinks_;
-    double dt_ = 0.02;
+    double dt_ = 0.05;
     std::vector<AttachedModel*> attachedObjs_;
   };
 

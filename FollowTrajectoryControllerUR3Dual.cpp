@@ -18,8 +18,13 @@
 
 #include <moveit_visual_tools/moveit_visual_tools.h>
 
-using namespace cnoid;
+// 
+#include <chrono>
+#include <thread>
 
+//
+
+using namespace cnoid;
 
 namespace teaching
 {
@@ -38,7 +43,10 @@ namespace teaching
     setToolLink(0, "larm_wrist_3_joint");
     setToolLink(1, "rarm_wrist_3_joint");
     name_ = "teaching_plugin";
-    topic_name_ = "joint_trajectory";
+    rarm_topic_name_ = "/right_arm/follow_joint_trajectory/goal";
+    larm_topic_name_ = "/left_arm/follow_joint_trajectory/goal";
+    rhand_topic_name_ = "/right_hand/joint_trajectory_controller/follow_joint_trajectory/goal";
+    lhand_topic_name_ = "/left_hand/joint_trajectory_controller/follow_joint_trajectory/goal";
 
     if (!ros::isInitialized())
     {
@@ -48,57 +56,28 @@ namespace teaching
     }
 
     node_ = boost::shared_ptr<ros::NodeHandle>(new ros::NodeHandle());
-    traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(topic_name_, 1);
+    // rarm_traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(rarm_topic_name_, 1);
+    // larm_traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(larm_topic_name_, 1);
+    // rhand_traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(rhand_topic_name_, 1);
+    // lhand_traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(lhand_topic_name_, 1);
+
+    rarm_traj_client_ = TrajClientPtr(new TrajClient("/right_arm/follow_joint_trajectory", true));
+    larm_traj_client_ = TrajClientPtr(new TrajClient("/left_arm/follow_joint_trajectory", true));
+    rhand_traj_client_ = TrajClientPtr(new TrajClient("/right_hand/joint_trajectory_controller/follow_joint_trajectory", true));
+    lhand_traj_client_ = TrajClientPtr(new TrajClient("/left_hand/joint_trajectory_controller/follow_joint_trajectory", true));
+    
     js_sub_ = node_->subscribe("/joint_states", 1, &FollowTrajectoryControllerUR3Dual::updateState, this);
     spinner_ = boost::shared_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(1));
     spinner_->start();
 
-    planning_scene_interface_ = boost::shared_ptr<pi::PlanningSceneInterface>(new pi::PlanningSceneInterface);
-    rarm_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::RARM_GROUP));
-    larm_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::LARM_GROUP));
-    rhand_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::RHAND_GROUP));
-    lhand_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::LHAND_GROUP));
+    // planning_scene_interface_ = boost::shared_ptr<pi::PlanningSceneInterface>(new pi::PlanningSceneInterface);
+    // rarm_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::RARM_GROUP));
+    // larm_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::LARM_GROUP));
+    // rhand_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::RHAND_GROUP));
+    // lhand_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::LHAND_GROUP));
 
-    rarm_group_->setPoseReferenceFrame("stage_link");
-    larm_group_->setPoseReferenceFrame("stage_link");
-  }
-
-  bool FollowTrajectoryControllerUR3Dual::MoveArmCommand::doMove(boost::shared_ptr<pi::MoveGroupInterface> arm_group,
-                                                          geometry_msgs::Pose& target_pose,
-                                                          const std::string& arm_group_name)
-  {
-    const robot_state::JointModelGroup* arm_joint_model_group =
-      arm_group->getCurrentState()->getJointModelGroup(arm_group_name);
-    arm_group->setPoseTarget(target_pose);
-
-    arm_group->setMaxVelocityScalingFactor(0.2);
-    
-    pi::MoveGroupInterface::Plan my_plan;
-    bool success = (arm_group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS);
-    printLog("plan for target_pose1: ", success ? "SUCCEEDED" : "FAILED");
-
-    trajectory_msgs::JointTrajectory& jt = my_plan.trajectory_.joint_trajectory;
-
-    if (success) {
-      std::cout << "Number of joints: " << jt.joint_names.size() << std::endl;
-      for (const auto& name : jt.joint_names) { std::cout << name << " "; }
-      std::cout << std::endl;
-      std::cout << "Number of points: " << jt.points.size() << std::endl;
-      int np = 0;
-      for (const auto& p : jt.points) {
-        std::cout << "Point: " << np++ << "," << "Time: " << p.time_from_start << std::endl;
-        for (const auto& x : p.positions) {
-          std::cout << x << " ";
-        }
-        std::cout << std::endl;
-      }
-
-      arm_group->move();
-    } else {
-      return false;
-    }
-    
-    // ros::shutdown()
+    // rarm_group_->setPoseReferenceFrame("stage_link");
+    // larm_group_->setPoseReferenceFrame("stage_link");
   }
 
   bool FollowTrajectoryControllerUR3Dual::MoveArmCommand::operator()(std::vector<CompositeParamType>& params)
@@ -110,52 +89,42 @@ namespace teaching
     int armID = boost::get<int>(params[3]);
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
-    // Transform xyz,rpy to WASIT-based and convert the rotation to quaternion
     BodyPtr body = c_->getRobotBody();
     Link* base = body->rootLink();
-    // Link* wrist = body->link(c_->getToolLinkName(armID));
+    Link* wrist = body->link(c_->getToolLinkName(armID));
 
-    // std::cout << waistToWristT.linear() << std::endl;
-    // std::cout << waistToWristT.translation() << std::endl;
-    Eigen::Quaterniond quat(rotFromRpy(rpy));
-    geometry_msgs::Pose target_pose1;
-    target_pose1.orientation.x = quat.x();
-    target_pose1.orientation.y = quat.y();
-    target_pose1.orientation.z = quat.z();
-    target_pose1.orientation.w = quat.w();
-    target_pose1.position.x = xyz[0];
-    target_pose1.position.y = xyz[1];
-    target_pose1.position.z = xyz[2];
-    if (armID == 0) {
-      return doMove(c_->larm_group_, target_pose1, FollowTrajectoryControllerUR3Dual::LARM_GROUP);
+    JointPathPtr jointPath = getCustomJointPath(body, base, wrist);
+    jointPath->calcForwardKinematics();
+
+    c_->ci.clear();
+    c_->ci.appendSample(0, wrist->p(), wrist->attitude());
+    c_->ci.appendSample(duration, xyz, rotFromRpy(rpy));
+    c_->ci.update();
+
+    control_msgs::FollowJointTrajectoryGoal goal;
+    trajectory_msgs::JointTrajectory traj;
+    if (c_->interpolate(wrist, jointPath, traj)) {
+      goal.trajectory = traj;
+      TrajClientPtr traj_client;
+      if (armID == 0) {
+        traj_client = c_->larm_traj_client_;
+      } else {
+        traj_client = c_->rarm_traj_client_;
+      }
+
+      traj_client->sendGoal(goal);
+      while (!traj_client->getState().isDone()) {
+        c_->syncWithReal();
+      }
+
+      // auto abs_time = std::chrono::system_clock::now() + std::chrono::milliseconds((int)(duration*1000));
+      // std::this_thread::sleep_until(abs_time);
+
+      c_->syncWithReal();
+      return true;
     } else {
-      return doMove(c_->rarm_group_, target_pose1, FollowTrajectoryControllerUR3Dual::RARM_GROUP);
+      return false;
     }
-
-  }
-
-  bool FollowTrajectoryControllerUR3Dual::MoveGripperCommand::doMove(boost::shared_ptr<pi::MoveGroupInterface> gripper_group,
-                                                                     double target,
-                                                                     const std::string& gripper_group_name)
-  {
-    moveit::core::RobotStatePtr current_state = gripper_group->getCurrentState();
-    const robot_state::JointModelGroup* joint_model_group
-      = gripper_group->getCurrentState()->getJointModelGroup(gripper_group_name);
-    std::vector<double> joint_group_positions;
-    current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
-
-    pi::MoveGroupInterface::Plan my_plan;
-    joint_group_positions[0] = target;
-    joint_group_positions[1] = -target;
-    joint_group_positions[2] = target;
-    joint_group_positions[3] = target;
-    joint_group_positions[4] = -target;
-    joint_group_positions[5] = target;
-    gripper_group->setJointValueTarget(joint_group_positions);
-    if (gripper_group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS) {
-      printLog("gripper_group->plan succeeded");
-    }
-    gripper_group->move();
   }
 
   bool FollowTrajectoryControllerUR3Dual::MoveGripperCommand::operator()(std::vector<CompositeParamType>& params)
@@ -168,57 +137,155 @@ namespace teaching
     // least-square fitted
     const double a = -8.448133;
     const double b = 0.75585477;
-    const double goal = a * width + b;
+    const double qref = a * width + b;
 
-    if (gripperID == 0) {
-      return doMove(c_->lhand_group_, goal, FollowTrajectoryControllerUR3Dual::LHAND_GROUP);
+    BodyItem* robotItem = c_->getRobotItem();
+    BodyPtr body = c_->getRobotBody();
+    VectorXd qCur = c_->getCurrentJointAngles(body);
+    double dt = c_->getTimeStep();
+    
+    std::string gripperJoint;
+    std::string gripperDriverJoint;
+    TrajClientPtr traj_client;
+    if (gripperID == 0) { // LHAND
+      gripperJoint = "lgripper_finger2_joint";
+      gripperDriverJoint = "lhand_right_driver_joint";
+      traj_client = c_->lhand_traj_client_;
+    } else if (gripperID == 1) {
+      gripperJoint = "rgripper_finger2_joint";
+      gripperDriverJoint = "rhand_right_driver_joint";
+      traj_client = c_->rhand_traj_client_;
     } else {
-      return doMove(c_->rhand_group_, goal, FollowTrajectoryControllerUR3Dual::RHAND_GROUP);
+      printLog("unknown gripperID: ", gripperID);
+      return false;
     }
 
-    return false;
-  }
+    VectorXd q;
+    q.resize(1);
+    q[0] = qCur[body->link(gripperJoint)->jointId()];
 
-  bool FollowTrajectoryControllerUR3Dual::GoInitialCommand::doMove(boost::shared_ptr<pi::MoveGroupInterface> group,
-                                                                   std::vector<double>& joint_positions,
-                                                                   const std::string& group_name)
-  {
-    moveit::core::RobotStatePtr current_state = group->getCurrentState();
-    const robot_state::JointModelGroup* joint_model_group = group->getCurrentState()->getJointModelGroup(group_name);
-    std::vector<double> joint_group_positions;
-    current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
-    for (int i = 0; i < std::min(joint_group_positions.size(), joint_positions.size()); i++) {
-      joint_group_positions[i] = joint_positions[i];
+    c_->jointInterpolator.clear();
+    c_->jointInterpolator.appendSample(0, q);
+    q[0] = qref;
+    c_->jointInterpolator.appendSample(duration, q);
+    c_->jointInterpolator.update();
+
+    trajectory_msgs::JointTrajectory traj;
+    traj.header.stamp = ros::Time::now();
+    int nJoints = 1;
+    traj.joint_names.push_back(gripperDriverJoint);
+
+    for (double time = 0.0; time < duration+dt; time += dt) {
+      if (time > duration) { time = duration; }
+      VectorXd qRef;
+      qRef = c_->jointInterpolator.interpolate(time);
+
+      trajectory_msgs::JointTrajectoryPoint p;
+      p.positions.resize(nJoints);
+      p.velocities.resize(nJoints);
+      for (int i = 0; i < nJoints; i++) {
+        p.positions[i] = qRef[i];
+        p.velocities[i] = 0.0;
+      }
+      p.time_from_start = ros::Duration(time);
+      traj.points.push_back(p);
     }
 
-    pi::MoveGroupInterface::Plan my_plan;
-    group->setJointValueTarget(joint_group_positions);
-    if (group->plan(my_plan) == pi::MoveItErrorCode::SUCCESS) { printLog("plan succeeded"); }
-    group->move();
+    control_msgs::FollowJointTrajectoryGoal goal;
+    goal.trajectory = traj;
+    traj_client->sendGoal(goal);
+    while (!traj_client->getState().isDone()) {
+      c_->syncWithReal();
+    }
+
+    // auto abs_time = std::chrono::system_clock::now() + std::chrono::milliseconds((int)(duration*1000));
+    // std::this_thread::sleep_until(abs_time);
+    // robotItem->notifyKinematicStateChange(true);
+    // QCoreApplication::processEvents();
+
+    c_->syncWithReal();
+    return true;
   }
-  
+
   bool FollowTrajectoryControllerUR3Dual::GoInitialCommand::operator()(std::vector<CompositeParamType>& params)
   {
     double duration = boost::get<double>(params[0]);
 
-    std::vector<double> joint_positions;
-    joint_positions.resize(6);
+    // RARM
+    BodyItem* robotItem = c_->getRobotItem();
+    BodyPtr body = robotItem->body();
+    Link* base = body->rootLink();
 
-    joint_positions[0] = 60;
-    joint_positions[1] = -34;
-    joint_positions[2] = 78;
-    joint_positions[3] = -94;
-    joint_positions[4] = -218;
-    joint_positions[5] = -157;
-    // doMove(c_->rarm_group_, joint_positions, FollowTrajectoryControllerUR3Dual::RARM_GROUP);
-    joint_positions[0] = -64;
-    joint_positions[1] = -133;
-    joint_positions[2] = -70;
-    joint_positions[3] = 250;
-    joint_positions[4] = -160;
-    joint_positions[5] = -6;
-    // doMove(c_->larm_group_, joint_positions, FollowTrajectoryControllerUR3Dual::LARM_GROUP);
+    Link* rwrist = body->link(c_->getToolLinkName(1));
+    JointPathPtr rJointPath = getCustomJointPath(body, base, rwrist);
+    VectorXd q0;
+    q0.resize(rJointPath->numJoints());
+    for (int i = 0; i < rJointPath->numJoints(); i++) {
+      q0[i] = rJointPath->joint(i)->q();
+    }
+    c_->jointInterpolator.clear();
+    c_->jointInterpolator.appendSample(0, q0);
+    q0[0] = radian(60);
+    q0[1] = radian(-34);
+    q0[2] = radian(78);
+    q0[3] = radian(-94);
+    q0[4] = radian(-218);
+    q0[5] = radian(-157);
+    c_->jointInterpolator.appendSample(duration, q0);
+    c_->jointInterpolator.update();
 
+    trajectory_msgs::JointTrajectory traj;
+    if (c_->interpolateJ(rJointPath, traj)) {
+      control_msgs::FollowJointTrajectoryGoal goal;
+      goal.trajectory = traj;
+      c_->rarm_traj_client_->sendGoal(goal);
+      while (!c_->rarm_traj_client_->getState().isDone()) {
+        c_->syncWithReal();
+        usleep(50000);
+      }
+    }
+
+    // LARM
+    Link* lwrist = body->link(c_->getToolLinkName(0));
+    JointPathPtr lJointPath = getCustomJointPath(body, base, lwrist);
+    VectorXd q1;
+    q1.resize(lJointPath->numJoints());
+    for (int i = 0; i < lJointPath->numJoints(); i++) {
+      q1[i] = lJointPath->joint(i)->q();
+    }
+    c_->jointInterpolator.clear();
+    c_->jointInterpolator.appendSample(0, q1);
+    q1[0] = radian(-64);
+    q1[1] = radian(-133);
+    q1[2] = radian(-70);
+    q1[3] = radian(250);
+    q1[4] = radian(-160);
+    q1[5] = radian(-6);
+    c_->jointInterpolator.appendSample(duration, q1);
+    c_->jointInterpolator.update();
+
+    trajectory_msgs::JointTrajectory traj2;
+    if (c_->interpolateJ(lJointPath, traj2)) {
+      control_msgs::FollowJointTrajectoryGoal goal;
+      goal.trajectory = traj2;
+      c_->larm_traj_client_->sendGoal(goal);
+      while (!c_->larm_traj_client_->getState().isDone()) {
+        c_->syncWithReal();
+        usleep(50000);
+      }
+    }
+
+    // for (int i = 0; i < rJointPath->numJoints(); i++) {
+    //   rJointPath->joint(i)->q() = q0[i];
+    // }
+    // for (int i = 0; i < lJointPath->numJoints(); i++) {
+    //   lJointPath->joint(i)->q() = q1[i];
+    // }
+
+    // c_->updateAttachedModels();
+    // robotItem->notifyKinematicStateChange(true);
+
+    c_->syncWithReal();
     return true;
   }
 
@@ -227,17 +294,33 @@ namespace teaching
     BodyItem* robotItem = getRobotItem();
     BodyPtr body = getRobotBody();
 
-    // The order of joints is the same as Choreonoid in /joint_states
-
-    // lhand_right_driver_joint
-    // rhand_right_driver_joint
-    
     for (int i = 0; i < body->numJoints(); i++) {
       body->joint(i)->q() = joint_state_[body->joint(i)->name()];
     }
-    
+
     for (auto x : joint_state_) {
-      std::cout << x.first << " " << x.second << std::endl;
+      // std::cout << x.first << " " << x.second << std::endl;
+
+      // Note that lhand_right_driver_joint and rhand_right_driver_joint does not exist
+      // in the robot model.
+      if (body->link(x.first)) {
+        body->joint(body->link(x.first)->jointId())->q() = x.second;
+      }
+      double th = joint_state_["rhand_right_driver_joint"];
+      body->joint(body->link("rgripper_finger1_finger_tip_joint")->jointId())->q() = -th;
+      body->joint(body->link("rgripper_finger1_inner_knuckle_joint")->jointId())->q() = -th;
+      body->joint(body->link("rgripper_finger1_joint")->jointId())->q() = -th;
+      body->joint(body->link("rgripper_finger2_finger_tip_joint")->jointId())->q() = -th;
+      body->joint(body->link("rgripper_finger2_inner_knuckle_joint")->jointId())->q() = th;
+      body->joint(body->link("rgripper_finger2_joint")->jointId())->q() = th;
+
+      th = joint_state_["lhand_right_driver_joint"];
+      body->joint(body->link("lgripper_finger1_finger_tip_joint")->jointId())->q() = -th;
+      body->joint(body->link("lgripper_finger1_inner_knuckle_joint")->jointId())->q() = -th;
+      body->joint(body->link("lgripper_finger1_joint")->jointId())->q() = -th;
+      body->joint(body->link("lgripper_finger2_finger_tip_joint")->jointId())->q() = -th;
+      body->joint(body->link("lgripper_finger2_inner_knuckle_joint")->jointId())->q() = th;
+      body->joint(body->link("lgripper_finger2_joint")->jointId())->q() = th;
     }
 
     updateAttachedModels();
@@ -252,6 +335,80 @@ namespace teaching
     }
   }
 
+  bool FollowTrajectoryControllerUR3Dual::interpolateJ(JointPathPtr jointPath, trajectory_msgs::JointTrajectory& traj)
+  {
+    double duration = jointInterpolator.domainUpper();
+    double dt = getTimeStep();
+
+    traj.points.clear();
+    traj.header.stamp = ros::Time::now();
+    for (int i = 0; i < jointPath->numJoints(); i++) {
+      traj.joint_names.push_back(jointPath->joint(i)->name());
+    }
+
+    for (double time = 0.0; time < duration+dt; time += dt) {
+      if (time > duration) { time = duration; }
+
+      VectorXd qRef;
+      qRef = jointInterpolator.interpolate(time);
+
+      trajectory_msgs::JointTrajectoryPoint p;
+      p.positions.resize(jointPath->numJoints());
+      p.velocities.resize(jointPath->numJoints());
+      for (int i = 0; i < jointPath->numJoints(); i++) {
+        p.positions[i] = qRef[i];
+        p.velocities[i] = 0.0;
+      }
+      p.time_from_start = ros::Duration(time);
+      traj.points.push_back(p);
+    }
+
+    return true;
+  }
+
+  bool FollowTrajectoryControllerUR3Dual::interpolate(Link* wrist, JointPathPtr jointPath, trajectory_msgs::JointTrajectory& traj)
+  {
+    double duration = ci.domainUpper();
+    double dt = getTimeStep();
+
+    traj.points.clear();
+    traj.header.stamp = ros::Time::now();
+    for (int i = 0; i < jointPath->numJoints(); i++) {
+      traj.joint_names.push_back(jointPath->joint(i)->name());
+    }
+
+    for (double time = 0.0; time < duration+dt; time += dt) {
+      if (time > duration) { time = duration; }
+      SE3 tf = ci.interpolate(time);
+
+      if (jointPath->calcInverseKinematics(tf.translation(),
+                                           wrist->calcRfromAttitude(tf.rotation().toRotationMatrix()))) {
+        updateAttachedModels();
+        BodyItem* robotItem = getRobotItem();
+        robotItem->notifyKinematicStateChange(true);
+        BodyPtr body = getRobotBody();
+
+        trajectory_msgs::JointTrajectoryPoint p;
+        p.positions.resize(jointPath->numJoints());
+        p.velocities.resize(jointPath->numJoints());
+        for (int i = 0; i < jointPath->numJoints(); i++) {
+          p.positions[i] = jointPath->joint(i)->q();
+          p.velocities[i] = 0.0;
+        }
+        p.time_from_start = ros::Duration(time);
+        traj.points.push_back(p);
+
+        //QCoreApplication::processEvents();
+      } else {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
+  
   bool FollowTrajectoryControllerUR3Dual::sendTrajectory()
   {
     trajectory_msgs::JointTrajectory traj;
@@ -280,7 +437,7 @@ namespace teaching
       traj.points[ind].time_from_start = ros::Duration(1.0);
     }
 
-    traj_pub_.publish(traj);
+    // traj_pub_.publish(traj);
 
     // add time stamp and other required info
     // controllerをmoveitにする
@@ -324,7 +481,7 @@ namespace teaching
       traj.points[ind].velocities[j] = 0.0;
     }
     traj.points[ind].time_from_start = ros::Duration(2.0);
-    traj_pub_.publish(traj);
+    //traj_pub_.publish(traj);
 #endif
 
     // wait the completion of the execution

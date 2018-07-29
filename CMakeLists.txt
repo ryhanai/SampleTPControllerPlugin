@@ -75,11 +75,13 @@ if(USE_ROS)
     ${sources}
     FollowTrajectoryControllerROS.cpp
     FollowTrajectoryControllerUR3Dual.cpp
+    #MoveItControllerUR3Dual.cpp
     )
   set(headers
     ${headers}
     FollowTrajectoryControllerROS.h
     FollowTrajectoryControllerUR3Dual.h
+    #MoveItControllerUR3Dual.h
     )
   set(includes
     ${includes}

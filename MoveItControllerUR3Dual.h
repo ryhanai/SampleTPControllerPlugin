@@ -14,13 +14,8 @@
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <map>
 
-#include <control_msgs/FollowJointTrajectoryAction.h>
-#include <actionlib/client/simple_action_client.h>
-
 namespace teaching
 {
-  typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> TrajClient;
-  typedef std::shared_ptr<TrajClient> TrajClientPtr;
 
   class FollowTrajectoryControllerUR3Dual : public Controller
   {
@@ -30,8 +25,6 @@ namespace teaching
     bool sendTrajectory();
     void syncWithReal();
     void updateState(const sensor_msgs::JointState::ConstPtr& jointstate);
-    bool interpolateJ(JointPathPtr jointPath, trajectory_msgs::JointTrajectory& traj);
-    bool interpolate(Link* wrist, JointPathPtr jointPath, trajectory_msgs::JointTrajectory& traj);
 
   private:
     class MoveArmCommand : public Command
@@ -40,6 +33,10 @@ namespace teaching
       MoveArmCommand(FollowTrajectoryControllerUR3Dual* c) { c_ = c; }
       FollowTrajectoryControllerUR3Dual* c_;
       virtual bool operator()(std::vector<CompositeParamType>& params);
+      bool doMove(boost::shared_ptr<moveit::planning_interface::MoveGroupInterface> arm_group,
+                  geometry_msgs::Pose& target_pose,
+                  const std::string& arm_group_name);
+
     };
 
   class MoveGripperCommand : public Command
@@ -48,6 +45,9 @@ namespace teaching
       MoveGripperCommand(FollowTrajectoryControllerUR3Dual* c) { c_ = c; }
       FollowTrajectoryControllerUR3Dual* c_;
       virtual bool operator()(std::vector<CompositeParamType>& params);
+      bool doMove(boost::shared_ptr<moveit::planning_interface::MoveGroupInterface> gripper_group,
+                  double target,
+                  const std::string& gripper_group_name);
     };
 
   class GoInitialCommand : public Command
@@ -56,6 +56,9 @@ namespace teaching
       GoInitialCommand(FollowTrajectoryControllerUR3Dual* c) { c_ = c; }
       FollowTrajectoryControllerUR3Dual* c_;
       virtual bool operator()(std::vector<CompositeParamType>& params);
+      bool doMove(boost::shared_ptr<moveit::planning_interface::MoveGroupInterface> group,
+                  std::vector<double>& joint_positions,
+                  const std::string& group_name);
     };
 
   private:
@@ -69,21 +72,9 @@ namespace teaching
 
   protected:
     std::string name_;
-    std::string rarm_topic_name_;
-    std::string larm_topic_name_;
-    std::string rhand_topic_name_;
-    std::string lhand_topic_name_;
+    std::string topic_name_;
     boost::shared_ptr<ros::NodeHandle> node_;
-    ros::Publisher rarm_traj_pub_;
-    ros::Publisher larm_traj_pub_;
-    ros::Publisher rhand_traj_pub_;
-    ros::Publisher lhand_traj_pub_;
-
-    TrajClientPtr rarm_traj_client_;
-    TrajClientPtr larm_traj_client_;
-    TrajClientPtr rhand_traj_client_;
-    TrajClientPtr lhand_traj_client_;
-    
+    ros::Publisher traj_pub_;
     ros::Subscriber js_sub_;
     boost::shared_ptr<ros::AsyncSpinner> spinner_;
     boost::shared_ptr<moveit::planning_interface::PlanningSceneInterface> planning_scene_interface_;
