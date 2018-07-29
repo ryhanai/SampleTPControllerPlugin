@@ -31,7 +31,7 @@ public:
 
   virtual bool initialize()
   {
-    // ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
+    ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
     ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
 
     ToolBar* bar = new ToolBar("SampleHiroController");
@@ -43,22 +43,27 @@ public:
     addToolBar(bar);
     bar->setVisibleByDefault(true);
     
+#ifdef ROS_ON
     // ControllerManager::instance()->registController("FollowTrajectoryController", FollowTrajectoryController::instance());
     ControllerManager::instance()->registController("FollowTrajectoryControllerUR3Dual", FollowTrajectoryControllerUR3Dual::instance());
+#endif
 
     return true;
   }
 
   void onSyncButtonClicked()
   {
+#ifdef ROS_ON
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
     handler->syncWithReal();
+#endif
   }
 
   void onPose1ButtonClicked()
   {
+#ifdef ROS_ON
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -80,10 +85,12 @@ public:
     params.push_back(duration);
     params.push_back(armID);
     handler->executeCommand(commandName, params);
+#endif
   }
 
   void onPose2ButtonClicked()
   {
+#ifdef ROS_ON
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -105,10 +112,12 @@ public:
     params.push_back(duration);
     params.push_back(armID);
     handler->executeCommand(commandName, params);
+#endif
   }
 
   void onPose3ButtonClicked()
   {
+#ifdef ROS_ON
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -130,10 +139,12 @@ public:
     params.push_back(duration);
     params.push_back(armID);
     handler->executeCommand(commandName, params);
+#endif
   }
 
   void onInitialPoseButtonClicked()
   {
+#ifdef ROS_ON
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -142,6 +153,7 @@ public:
     double duration = 10.0;
     params.push_back(duration);
     handler->executeCommand("goInitial", params);
+#endif
   }
 
   void onPubTrajButtonClicked()
