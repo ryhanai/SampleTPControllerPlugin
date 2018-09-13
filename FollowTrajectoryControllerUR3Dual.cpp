@@ -4,33 +4,21 @@
 
 #include <sstream>
 #include <cnoid/ValueTree> // for Listing
-#include "FollowTrajectoryControllerUR3Dual.h"
 
 #include <cnoid/RootItem>
 #include <cnoid/BodyItem>
 #include <QCoreApplication>
 
-#include <moveit_msgs/DisplayRobotState.h>
-#include <moveit_msgs/DisplayTrajectory.h>
-
-#include <moveit_msgs/AttachedCollisionObject.h>
-#include <moveit_msgs/CollisionObject.h>
-
-#include <moveit_visual_tools/moveit_visual_tools.h>
-
-// 
 #include <chrono>
 #include <thread>
 
-//
+#include "FollowTrajectoryControllerUR3Dual.h"
 
 using namespace cnoid;
 
 namespace teaching
 {
 
-  namespace pi = moveit::planning_interface;
-  
   FollowTrajectoryControllerUR3Dual* FollowTrajectoryControllerUR3Dual::instance()
   {
     static FollowTrajectoryControllerUR3Dual* controller = new FollowTrajectoryControllerUR3Dual();
@@ -56,28 +44,15 @@ namespace teaching
     }
 
     node_ = boost::shared_ptr<ros::NodeHandle>(new ros::NodeHandle());
-    // rarm_traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(rarm_topic_name_, 1);
-    // larm_traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(larm_topic_name_, 1);
-    // rhand_traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(rhand_topic_name_, 1);
-    // lhand_traj_pub_ = node_->advertise<trajectory_msgs::JointTrajectory>(lhand_topic_name_, 1);
 
     rarm_traj_client_ = TrajClientPtr(new TrajClient("/right_arm/follow_joint_trajectory", true));
     larm_traj_client_ = TrajClientPtr(new TrajClient("/left_arm/follow_joint_trajectory", true));
     rhand_traj_client_ = TrajClientPtr(new TrajClient("/right_hand/joint_trajectory_controller/follow_joint_trajectory", true));
     lhand_traj_client_ = TrajClientPtr(new TrajClient("/left_hand/joint_trajectory_controller/follow_joint_trajectory", true));
-    
+
     js_sub_ = node_->subscribe("/joint_states", 1, &FollowTrajectoryControllerUR3Dual::updateState, this);
     spinner_ = boost::shared_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(1));
     spinner_->start();
-
-    // planning_scene_interface_ = boost::shared_ptr<pi::PlanningSceneInterface>(new pi::PlanningSceneInterface);
-    // rarm_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::RARM_GROUP));
-    // larm_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::LARM_GROUP));
-    // rhand_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::RHAND_GROUP));
-    // lhand_group_ = boost::shared_ptr<pi::MoveGroupInterface>(new pi::MoveGroupInterface(FollowTrajectoryControllerUR3Dual::LHAND_GROUP));
-
-    // rarm_group_->setPoseReferenceFrame("stage_link");
-    // larm_group_->setPoseReferenceFrame("stage_link");
   }
 
   bool FollowTrajectoryControllerUR3Dual::MoveArmCommand::operator()(std::vector<CompositeParamType>& params)
@@ -143,7 +118,7 @@ namespace teaching
     BodyPtr body = c_->getRobotBody();
     VectorXd qCur = c_->getCurrentJointAngles(body);
     double dt = c_->getTimeStep();
-    
+
     std::string gripperJoint;
     std::string gripperDriverJoint;
     TrajClientPtr traj_client;
@@ -299,10 +274,7 @@ namespace teaching
     }
 
     for (auto x : joint_state_) {
-      // std::cout << x.first << " " << x.second << std::endl;
-
-      // Note that lhand_right_driver_joint and rhand_right_driver_joint does not exist
-      // in the robot model.
+      // Note that lhand_right_driver_joint and rhand_right_driver_joint does not exist in the robot model.
       if (body->link(x.first)) {
         body->joint(body->link(x.first)->jointId())->q() = x.second;
       }
@@ -398,95 +370,12 @@ namespace teaching
         p.time_from_start = ros::Duration(time);
         traj.points.push_back(p);
 
-        //QCoreApplication::processEvents();
       } else {
         return false;
       }
     }
 
     return true;
-  }
-
-
-  
-  bool FollowTrajectoryControllerUR3Dual::sendTrajectory()
-  {
-    trajectory_msgs::JointTrajectory traj;
-    traj.header.stamp = ros::Time::now();
-
-    BodyPtr body = getRobotBody();
-    int n = body->numJoints();
-    int num_points = 1;
-
-    for (int i = 0; i < n; i++)
-    {
-      //std::cout << body->joint(i)->name() << std::endl;
-      traj.joint_names.push_back(body->joint(i)->name());
-    }
-
-    traj.points.resize(num_points);
-    for (int ind = 0; ind < num_points; ind++)
-    {
-      traj.points[ind].positions.resize(n);
-      traj.points[ind].velocities.resize(n);
-      for (int i = 0; i < n; i++)
-      {
-        traj.points[ind].positions[i] = body->joint(i)->q();
-        traj.points[ind].velocities[i] = 0.0;
-      }
-      traj.points[ind].time_from_start = ros::Duration(1.0);
-    }
-
-    // traj_pub_.publish(traj);
-
-    // add time stamp and other required info
-    // controllerをmoveitにする
-    // sim => plan => 結果を受け取って可視化
-    // real => execute （ボタン）
-    // ハンド関節を除外して送る
-
-#if 0
-    // joint->name().c_str();
-    //const trajectory_msgs::JointTrajectoryPoint* traj;
-    //trajectory_msgs::JointTrajectoryPoint traj;
-    trajectory_msgs::JointTrajectory traj;
-    //traj.header.stamp = ros::Time::now() + ros::Duration(1.0);
-    traj.header.stamp = ros::Time::now();
-
-    traj.joint_names.push_back("rarm1_joint");
-    traj.joint_names.push_back("rarm2_joint");
-    traj.joint_names.push_back("rarm3_joint");
-
-    traj.points.resize(2);
-    int ind = 0;
-    traj.points[ind].positions.resize(3);
-    traj.points[ind].positions[0] = 0.0;
-    traj.points[ind].positions[1] = 0.1;
-    traj.points[ind].positions[2] = 0.2;
-    traj.points[ind].velocities.resize(3);
-    for (size_t j = 0; j < 3; ++j)
-    {
-      traj.points[ind].velocities[j] = 0.0;
-    }
-    traj.points[ind].time_from_start = ros::Duration(1.0);
-
-    ind++;
-    traj.points[ind].positions.resize(3);
-    traj.points[ind].positions[0] = 1.0;
-    traj.points[ind].positions[1] = 1.1;
-    traj.points[ind].positions[2] = 1.2;
-    traj.points[ind].velocities.resize(3);
-    for (size_t j = 0; j < 3; ++j)
-    {
-      traj.points[ind].velocities[j] = 0.0;
-    }
-    traj.points[ind].time_from_start = ros::Duration(2.0);
-    //traj_pub_.publish(traj);
-#endif
-
-    // wait the completion of the execution
-    // update the robot status in Scene View on the completion
-    // subscribe to /joint_state and update the local model
   }
 
   void FollowTrajectoryControllerUR3Dual::registerCommands()

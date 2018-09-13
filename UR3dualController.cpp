@@ -79,7 +79,7 @@ namespace teaching
       printLog("unknown gripperID: ", gripperID);
       return false;
     }
-    
+
     return c_->executeGripperMotion(gripperLinks, width);
   }
 
@@ -160,51 +160,6 @@ namespace teaching
   bool UR3dualController::executeDualArmMotion()
   {
     printLog("UR3dualController::executeDualArmMotion [ NOT IMPLEMENTED ]");
-
-//     BodyPtr body = getRobotBody();
-//     Link* base = body->link("CHEST_JOINT0");
-//     Link* lwrist = body->link("LARM_JOINT5");
-//     Link* rwrist = body->link("RARM_JOINT5");
-//     JointPathPtr lJointPath = getCustomJointPath(body, base, lwrist);
-//     JointPathPtr rJointPath = getCustomJointPath(body, base, rwrist);
-
-//     double dt = getTimeStep();
-//     double duration = ci.domainUpper();
-
-//     for (double time = 0.0; time < duration+dt; time += dt) {
-//       if (time > duration) { time = duration; }
-
-// #ifndef _WIN32
-//       auto abs_time = std::chrono::system_clock::now() + std::chrono::milliseconds((int)(dt*1000));
-// #endif
-
-//       SE3 ltf = ci.interpolate(time);
-//       SE3 rtf = ci2.interpolate(time);
-//       if (!lJointPath->calcInverseKinematics(ltf.translation(),
-//                                              lwrist->calcRfromAttitude(ltf.rotation().toRotationMatrix())))
-//       {
-//         printLog("larm IK failed");
-//         return false;
-//       }
-
-//       if (!rJointPath->calcInverseKinematics(rtf.translation(),
-//                                              rwrist->calcRfromAttitude(rtf.rotation().toRotationMatrix())))
-//       {
-//         printLog("rarm IK failed");
-//         return false;
-//       }
-
-//       updateAttachedModels();
-//       BodyItem* robotItem = getRobotItem();
-//       robotItem->notifyKinematicStateChange(true);
-//       QCoreApplication::processEvents();
-// #ifdef _WIN32
-//       Sleep((int)(dt*1000));
-// #else
-//       std::this_thread::sleep_until(abs_time);
-// #endif
-//     }
-
     return false;
   }
 
