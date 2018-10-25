@@ -48,14 +48,17 @@ set(libname CnoidSampleHiroControllerPlugin)
 
 set(sources
   SampleHiroControllerPlugin.cpp
-  SampleHiroController.cpp
-  UR3dualController.cpp
+  # SampleHiroController.cpp
+  # UR3dualController.cpp
+  SingleArmFakeController.cpp
   ControllerFramework.cpp
   )
 
 set(headers
-  SampleHiroController.h
-  UR3dualController.h
+  # SampleHiroController.h
+  # UR3dualController.h
+  SingleArmFakeController.h
+  SingleArmControllerIF.h
   ControllerFramework.h
   Interpolator.h
   gettext.h
