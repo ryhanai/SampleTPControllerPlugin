@@ -39,18 +39,27 @@ namespace teaching
     int armID = boost::get<int>(params[3]);
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
-    BodyPtr body = c_->getRobotBody();
-    Link* base = body->rootLink();
-    Link* wrist = body->link(c_->getToolLinkName(armID));
+    Link* base = c_->getBaseLink();
+    Link* wrist = c_->getToolLink();
+    std::vector<Pose> traj = c_->ci_.interpolate(wrist->p(), wrist->attitude(), xyz, rotFromRpy(rpy), duration);
+    return c_->executeCartesianMotion(traj); // for fake execution
 
-    JointPathPtr jointPath = getCustomJointPath(body, base, wrist);
-    jointPath->calcForwardKinematics();
+    Trajectory rostraj;
+    // copy traj to rostraj
+    return executeTrajectory();
 
-    c_->ci.clear();
-    c_->ci.appendSample(0, wrist->p(), wrist->attitude());
-    c_->ci.appendSample(duration, xyz, rotFromRpy(rpy));
-    c_->ci.update();
-    return c_->executeCartesianMotion(wrist, jointPath);
+    // BodyPtr body = c_->getRobotBody();
+    // Link* base = body->rootLink();
+    // Link* wrist = body->link(c_->getToolLinkName(armID));
+
+    // JointPathPtr jointPath = getCustomJointPath(body, base, wrist);
+    // jointPath->calcForwardKinematics();
+
+    // c_->ci.clear();
+    // c_->ci.appendSample(0, wrist->p(), wrist->attitude());
+    // c_->ci.appendSample(duration, xyz, rotFromRpy(rpy));
+    // c_->ci.update();
+    // return c_->executeCartesianMotion(wrist, jointPath);
   }
 
   bool UR3dualController::MoveGripperCommand::operator()(std::vector<CompositeParamType>& params)

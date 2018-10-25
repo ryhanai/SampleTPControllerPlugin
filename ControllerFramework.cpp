@@ -49,7 +49,7 @@ namespace teaching
     qsamples_.clear();
   }
 
-  void CartesianInterpolator::appendSample(double t, const::Vector3& xyz, const Matrix3d& rotation)
+  void CartesianInterpolator::appendSample(double t, const Vector3& xyz, const Matrix3d& rotation)
   {
     VectorXd p(3);
     p.head<3>() = xyz;
@@ -77,7 +77,7 @@ namespace teaching
     SE3 tf(p, q_slerp);
     return tf;
   }
-
+  
   Controller::Controller()
   {
     attachedObjs_.clear();
@@ -87,7 +87,7 @@ namespace teaching
 
   bool Controller::executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params)
   {
-    Command* cmd;
+    Command cmd;
 
     try {
       cmd = commands_[commandName];
@@ -97,7 +97,7 @@ namespace teaching
     }
 
     try {
-      if ((*cmd)(params)) { return true; }
+      if (cmd(params)) { return true; }
     } catch (RobotNotFoundException& e) {
       printLog ("Robot ", e.message(), " not found");
     } catch (ItemNotFoundException& e) {
@@ -167,11 +167,11 @@ namespace teaching
 
   cnoid::Link* Controller::getToolLink(int toolNumber)
   {
-    try {
-      BodyPtr robotBody = getRobotBody();
-      Link* link = robotBody->link(getToolLinkName(toolNumber));
+    BodyPtr robotBody = getRobotBody();
+    Link* link = robotBody->link(getToolLinkName(toolNumber));
+    if (link) {
       return link;
-    } catch (...) {
+    } else {
       throw UndefinedToolException(toolNumber);
     }
   }
@@ -179,11 +179,11 @@ namespace teaching
   BodyItem* Controller::getRobotItem ()
   {
     BodyItem* robotItem = findItemByName(rootName);
-    if (robotItem == NULL) {
+    if (robotItem) {
+      return robotItem;
+    } else {
       throw RobotNotFoundException(rootName);
     }
-
-    return robotItem;
   }
 
   BodyItem* Controller::findItemByName (const std::string& name)
@@ -236,9 +236,10 @@ namespace teaching
 
     return true;
   }
-  
+
   void Controller::registerCommand (std::string internalName, std::string displayName, std::string returnType,
-                                    std::list<A> arguments, Command* commandFunc)
+                                    std::list<A> arguments,
+                                    Command commandFunc)
   {
     CommandDefParam* cmd = new CommandDefParam(registeredCommands_++, QString::fromStdString(internalName),
                                                QString::fromStdString(displayName), QString::fromStdString(returnType));
@@ -251,6 +252,95 @@ namespace teaching
     commandDefs_.push_back(cmd);
   }
 
+  bool Controller::interpolate(int toolNumber, const Vector3& xyz, const Vector3& rpy, double duration, Trajectory& traj)
+  {
+    BodyItem* robotItem = getRobotItem();
+    BodyPtr body = getRobotBody();
+    Link* base = body->rootLink();
+    Link* tool = getToolLink(toolNumber);
+    JointPathPtr jointPath = getCustomJointPath(body, base, tool);
+    jointPath->calcForwardKinematics();
+
+    traj.clear();
+
+    ci_.clear();
+    ci_.appendSample(0, tool->p(), tool->attitude());
+    ci_.appendSample(duration, xyz, rotFromRpy(rpy));
+    ci_.update();
+
+    // double duration = ci.domainUpper();
+
+    for (double time = 0.0; time < duration+dt_; time += dt_) {
+      if (time > duration) { time = duration; }
+
+      SE3 tf = ci_.interpolate(time);
+      if (jointPath->calcInverseKinematics(tf.translation(),
+                                           tool->calcRfromAttitude(tf.rotation().toRotationMatrix()))) {
+        updateAttachedModels();
+        robotItem->notifyKinematicStateChange(true);
+        VectorXd q;
+        q.resize(jointPath->numJoints());
+        for (int i = 0; i < jointPath->numJoints(); i++) {
+          q[i] = jointPath->joint(i)->q();
+          std::cout << q[i] << ",";
+        }
+        std::cout << std::endl;
+
+        auto wp = std::make_tuple(time, q);
+        traj.push_back(wp);
+      } else {
+        return false; // throwing IK failure exception might be better
+      }
+    }
+
+    return true;
+  }
+  
+  bool Controller::followTrajectory(int toolNumber, const Trajectory& traj)
+  {
+    printLog("followTrajectory");
+
+    BodyItem* robotItem = getRobotItem();
+    BodyPtr body = getRobotBody();
+    Link* base = body->rootLink();
+    Link* tool = getToolLink(toolNumber);
+    JointPathPtr jointPath = getCustomJointPath(body, base, tool);
+
+    double last_tm = 0.0;
+
+    for (auto wp : traj) {
+      double tm = std::get<0>(wp);
+      VectorXd q = std::get<1>(wp);
+
+      double dt = tm - last_tm;
+      last_tm = tm;
+
+#ifndef _WIN32
+      auto abs_time = std::chrono::system_clock::now() + std::chrono::milliseconds((int)(dt*1000));
+#endif
+
+      for (int i = 0; i < jointPath->numJoints(); i++) {
+        jointPath->joint(i)->q() = q[i];
+      }
+
+      updateAttachedModels();
+      robotItem->notifyKinematicStateChange(true);
+      //QCoreApplication::sendPostedEvents();
+      QCoreApplication::processEvents();
+
+#ifdef _WIN32
+      Sleep((int)(dt*1000));
+#else
+      std::this_thread::sleep_until(abs_time);
+#endif
+    }
+
+    printLog("followTrajectory finished");
+
+    return true;
+
+  }
+  
   bool Controller::executeJointMotion()
   {
     printLog("executeJointMotion");
@@ -284,38 +374,6 @@ namespace teaching
     }
 
     printLog("executeJointMotion Finished");
-
-    return true;
-  }
-
-  bool Controller::executeCartesianMotion(Link* wrist, JointPathPtr jointPath)
-  {
-    double duration = ci.domainUpper();
-
-    for (double time = 0.0; time < duration+dt_; time += dt_) {
-      if (time > duration) { time = duration; }
-
-#ifndef _WIN32
-      auto abs_time = std::chrono::system_clock::now() + std::chrono::milliseconds((int)(dt_*1000));
-#endif
-
-      SE3 tf = ci.interpolate(time);
-
-      if (jointPath->calcInverseKinematics(tf.translation(),
-                                           wrist->calcRfromAttitude(tf.rotation().toRotationMatrix()))) {
-        updateAttachedModels();
-        BodyItem* robotItem = getRobotItem();
-        robotItem->notifyKinematicStateChange(true);
-        QCoreApplication::processEvents();
-#ifdef _WIN32
-        Sleep((int)(dt_*1000));
-#else
-        std::this_thread::sleep_until(abs_time);
-#endif
-      } else {
-        return false;
-      }
-    }
 
     return true;
   }

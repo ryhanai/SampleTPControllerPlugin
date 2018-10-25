@@ -8,6 +8,7 @@
 #include <boost/bind.hpp>
 #include "SampleHiroController.h"
 #include "UR3dualController.h"
+#include "SingleArmFakeController.h"
 #ifdef ROS_ON
 #include "FollowTrajectoryControllerROS.h"
 #include "FollowTrajectoryControllerUR3Dual.h"
@@ -31,8 +32,9 @@ public:
 
   virtual bool initialize()
   {
-    ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
-    ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
+    // ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
+    ControllerManager::instance()->registController("SingleArmFakeController", SingleArmFakeController::instance());
+    // ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
 
     ToolBar* bar = new ToolBar("SampleHiroController");
     bar->addButton("Sycn with Real")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onSyncButtonClicked, this));

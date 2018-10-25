@@ -50,7 +50,6 @@ namespace teaching
   private:
     UR3dualController();
     void registerCommands ();
-    bool executeDualArmMotion();
     bool executeGripperMotion (const std::vector<std::string>& gripperLinks, double width);
   };
 

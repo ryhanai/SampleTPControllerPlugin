@@ -7,6 +7,7 @@
 #include <string>
 #include <list>
 #include <vector>
+#include <tuple>
 #include <map>
 #include <sstream>
 #include <cnoid/BodyItem>
@@ -44,6 +45,8 @@ namespace teaching
   }
 
 
+  typedef std::vector<std::tuple<double, cnoid::VectorXd> > Trajectory;
+
   class CartesianInterpolator // Nextage: straight-line, spherical linear interpolation
   {
   public:
@@ -59,6 +62,7 @@ namespace teaching
 
   private:
     cnoid::Interpolator<cnoid::VectorXd> vInterpolator_;
+
     std::vector<double> ts_;
     std::vector<cnoid::Matrix3d> qsamples_;
   };
@@ -161,12 +165,14 @@ namespace teaching
   public:
     Controller ();
 
-    class Command
-    {
-    public:
-      virtual bool operator() (std::vector<CompositeParamType>& params) = 0;
-    };
+    /* class Command */
+    /* { */
+    /* public: */
+    /*   virtual bool operator() (std::vector<CompositeParamType>& params) = 0; */
+    /* }; */
 
+    typedef std::function<bool(std::vector<CompositeParamType>&)> Command;
+    
     // Methods called by teachingPlugin
     std::vector<CommandDefParam*> getCommandDefList();
     virtual bool executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params);
@@ -174,8 +180,12 @@ namespace teaching
     bool detachModelItem(cnoid::BodyItemPtr object, int target);
 
     // Methods used to implement controllers
+    /* void registerCommand(std::string internalName, std::string displayName, std::string returnType, */
+    /*                      std::list<A> arguments, Command* commandFunc); */
     void registerCommand(std::string internalName, std::string displayName, std::string returnType,
-                         std::list<A> arguments, Command* commandFunc);
+                         std::list<A> arguments, Command);
+    
+    
     void setToolLink(int toolNumber, std::string linkName) { toolLinks_[toolNumber] = linkName; }
     std::string getToolLinkName(int toolNumber) { return toolLinks_[toolNumber]; }
     cnoid::Link* getToolLink(int toolNumber);
@@ -184,7 +194,8 @@ namespace teaching
     cnoid::BodyPtr getRobotBody ();
     cnoid::VectorXd getCurrentJointAngles(cnoid::BodyPtr body);
     bool executeJointMotion();
-    bool executeCartesianMotion(Link* wrist, JointPathPtr jointPath);
+    bool followTrajectory(int toolNumber, const Trajectory& traj);
+//    bool executeCartesianMotion(Link* wrist, JointPathPtr jointPath);
 
     // Model action
     bool updateAttachedModels ();
@@ -194,10 +205,14 @@ namespace teaching
     double getTimeStep () { return dt_; }
 
     cnoid::Interpolator<cnoid::VectorXd> jointInterpolator;
-    CartesianInterpolator ci, ci2;
-    
+    CartesianInterpolator ci_, ci2_;
+
+    bool interpolate(int toolNumber,
+                     const Vector3& xyz, const Vector3& rpy, double duration,
+                     Trajectory& traj);
+
   private:
-    std::map<std::string, Command*> commands_;
+    std::map<std::string, Command> commands_;
     std::vector<CommandDefParam*> commandDefs_;
     int registeredCommands_ = 1;
 
