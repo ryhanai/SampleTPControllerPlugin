@@ -33,7 +33,14 @@ public:
   virtual bool initialize()
   {
     // ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
-    ControllerManager::instance()->registController("SingleArmFakeController", SingleArmFakeController::instance());
+    Controller* c = SingleArmFakeController::instance();
+    TPInterfacePtr tpif = std::make_shared<TPInterface>();
+    tpif->setToolLink(0, "arm1/Link6");
+    tpif->setRobotName("main_withHands");
+    tpif->setTimeStep(0.02);
+    c->setTPInterface(tpif);
+    ControllerManager::instance()->registController("SingleArmFakeController", c);
+
     // ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
 
     ToolBar* bar = new ToolBar("SampleHiroController");

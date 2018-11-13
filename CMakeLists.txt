@@ -51,6 +51,9 @@ set(sources
   # SampleHiroController.cpp
   # UR3dualController.cpp
   SingleArmFakeController.cpp
+  SingleArmControllerIF.cpp
+  ControllerIF.cpp
+  #SingleArmWithGripperFakeController.cpp
   ControllerFramework.cpp
   )
 
@@ -59,6 +62,7 @@ set(headers
   # UR3dualController.h
   SingleArmFakeController.h
   SingleArmControllerIF.h
+  ControllerIF.h
   ControllerFramework.h
   Interpolator.h
   gettext.h

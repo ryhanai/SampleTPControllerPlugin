@@ -18,14 +18,8 @@ namespace teaching
 
   SingleArmFakeController::SingleArmFakeController()
   {
-    registerCommand("moveArm", "Arm", "boolean",
-                    {A("xyz", "double", 3), A("rpy", "double", 3), A("tm", "double", 1), A("armID", "int", 1)},
-                    std::bind(&SingleArmFakeController::moveArm, this, _1)); // 0=left, 1=right
-    registerCommand("goInitial", "Initial Pose", "boolean", {A("tm", "double", 1)},
-                    std::bind(&SingleArmFakeController::goInitial, this, _1));
-
-    //setToolLink(0, "larm_wrist_3_joint"); // YAMLファイルから取得する方が良い？
-    setToolLink(0, "LARM_JOINT5"); // YAMLファイルから取得する方が良い？
+    registerCommandFunction("moveArm", std::bind(&SingleArmFakeController::moveArm, this, _1));
+    registerCommandFunction("goInitial", std::bind(&SingleArmFakeController::goInitial, this, _1));
   }
 
   bool SingleArmFakeController::moveArm (std::vector<CompositeParamType>& params)
@@ -38,8 +32,8 @@ namespace teaching
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
     Trajectory traj;
-    if (interpolate(armID, xyz, rpy, duration, traj)) {
-      return followTrajectory(armID, traj);
+    if (tpif_->interpolate(armID, xyz, rpy, duration, traj)) {
+      return tpif_->followTrajectory(armID, traj);
     }
 
     return false;

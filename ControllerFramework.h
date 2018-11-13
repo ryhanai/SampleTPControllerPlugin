@@ -83,33 +83,6 @@ namespace teaching
     std::vector<double> posVal;
   };
 
-  class A
-  {
-  public:
-    enum class var_prop: int
-    {
-      in, out, inout
-    };
-
-    A (std::string name, std::string type, int numElms, var_prop direction = var_prop::in)
-    {
-      _name = name;
-      _type = type;
-      _n = numElms;
-      _d = direction;
-    }
-
-    std::string name() { return _name; }
-    std::string type() { return _type; }
-    int numElms() { return _n; }
-    var_prop direction() { return _d; }
-
-  private:
-    std::string _name;
-    std::string _type;
-    int _n;
-    var_prop _d;
-  };
 
   class ControllerException
   {
@@ -126,17 +99,25 @@ namespace teaching
   class RobotNotFoundException : public ControllerException
   {
   public:
-    RobotNotFoundException (const std::string& message) : ControllerException(message) { }
+    RobotNotFoundException (const std::string& name) {
+      setMessage("Robot [" + name + "] not found");
+    }
   };
 
   class ItemNotFoundException : public ControllerException
   {
   public:
+    ItemNotFoundException (const std::string& name) {
+      setMessage("Item [" + name + "] not found");
+    }
   };
 
   class CommandNotFoundException : public ControllerException
   {
   public:
+    CommandNotFoundException (const std::string& name) {
+      setMessage("Command [" + name + "] not found");
+    };
   };
 
   class UnexpectedArgumentException : public ControllerException
@@ -147,78 +128,97 @@ namespace teaching
     }
   };
 
-  class UndefinedToolException : public ControllerException
+  class UndefinedToolNumberException : public ControllerException
   {
   public:
-    UndefinedToolException (const int n) : ControllerException (std::to_string(n)) { }
+    UndefinedToolNumberException (const int n) {
+      setMessage("tool number [" + std::to_string(n) + "] is not defined in the controller");
+    }
+  };
+
+  class UndefinedToolLinkException : public ControllerException
+  {
+  public:
+    UndefinedToolLinkException (const std::string& s){
+      setMessage("tool link [" + s + "] does not exist in the robot model.");
+    }
   };
 
   class IKFailureException : public ControllerException
   {
   public:
-    IKFailureException (const std::string& message) : ControllerException (message) { };
+    IKFailureException (const std::string& message) {
+      setMessage("IK failure [" + message);
+    }
   };
-
-
-  class Controller : public ControllerBase
-    {
+  
+  class TPInterface
+  {
   public:
-    Controller ();
+    TPInterface () { clearAttachedModels(); }
 
-    /* class Command */
-    /* { */
-    /* public: */
-    /*   virtual bool operator() (std::vector<CompositeParamType>& params) = 0; */
-    /* }; */
-
-    typedef std::function<bool(std::vector<CompositeParamType>&)> Command;
-    
-    // Methods called by teachingPlugin
-    std::vector<CommandDefParam*> getCommandDefList();
-    virtual bool executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params);
-    bool attachModelItem(cnoid::BodyItemPtr object, int target);
-    bool detachModelItem(cnoid::BodyItemPtr object, int target);
-
-    // Methods used to implement controllers
-    /* void registerCommand(std::string internalName, std::string displayName, std::string returnType, */
-    /*                      std::list<A> arguments, Command* commandFunc); */
-    void registerCommand(std::string internalName, std::string displayName, std::string returnType,
-                         std::list<A> arguments, Command);
-    
-    
-    void setToolLink(int toolNumber, std::string linkName) { toolLinks_[toolNumber] = linkName; }
-    std::string getToolLinkName(int toolNumber) { return toolLinks_[toolNumber]; }
-    cnoid::Link* getToolLink(int toolNumber);
-    cnoid::BodyItem* getRobotItem();
-    cnoid::BodyItem* findItemByName(const std::string& name);
+    void setToolLink (int toolNumber, std::string linkName) { toolLinks_[toolNumber] = linkName; }
+    std::string getToolLinkName (int toolNumber) { return toolLinks_[toolNumber]; }
+    cnoid::Link* getToolLink (int toolNumber);
+    cnoid::BodyItem* getRobotItem ();
+    cnoid::BodyItem* findItemByName (const std::string& name);
     cnoid::BodyPtr getRobotBody ();
-    cnoid::VectorXd getCurrentJointAngles(cnoid::BodyPtr body);
-    bool executeJointMotion();
-    bool followTrajectory(int toolNumber, const Trajectory& traj);
-//    bool executeCartesianMotion(Link* wrist, JointPathPtr jointPath);
+    void setRobotName (std::string robotName) { robotName_ = robotName; }
 
     // Model action
     bool updateAttachedModels ();
+    void clearAttachedModels () { attachedModels_.clear(); }
+    bool attachModelItem(cnoid::BodyItemPtr object, int target);
+    bool detachModelItem(cnoid::BodyItemPtr object, int target);
 
     // Simulator configuration
     void setTimeStep (double seconds) { dt_ = seconds; }
     double getTimeStep () { return dt_; }
 
-    cnoid::Interpolator<cnoid::VectorXd> jointInterpolator;
-    CartesianInterpolator ci_, ci2_;
 
+    //cnoid::Interpolator<cnoid::VectorXd> jointInterpolator;
+    CartesianInterpolator ci_;
     bool interpolate(int toolNumber,
                      const Vector3& xyz, const Vector3& rpy, double duration,
                      Trajectory& traj);
+    bool followTrajectory(int toolNumber, const Trajectory& traj);
+    cnoid::VectorXd getCurrentJointAngles(cnoid::BodyPtr body);
+    
+  private:
+    std::string robotName_;
+    std::map<int, std::string> toolLinks_;
+    double dt_ = 0.05;
+    std::vector<AttachedModel*> attachedModels_;
+  };
+
+  typedef std::shared_ptr<TPInterface> TPInterfacePtr;
+
+  class Controller : public ControllerBase
+  {
+  public:
+    void setTPInterface (TPInterfacePtr tpif) { tpif_ = tpif; }
+
+    typedef std::function<bool(std::vector<CompositeParamType>&)> Command;
+
+    // Methods called by teachingPlugin
+    // std::vector<CommandDefParam*> getCommandDefList();
+    virtual bool executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params);
+
+    // delegate to ControllerContext
+    bool attachModelItem(cnoid::BodyItemPtr object, int target);
+    bool detachModelItem(cnoid::BodyItemPtr object, int target);
+
+    // bool executeJointMotion();
+    // bool executeCartesianMotion(Link* wrist, JointPathPtr jointPath);
+
+    void registerCommandFunction (std::string internalName, Command command);
+
+  protected:
+    TPInterfacePtr tpif_;
 
   private:
     std::map<std::string, Command> commands_;
-    std::vector<CommandDefParam*> commandDefs_;
-    int registeredCommands_ = 1;
-
-    std::map<int, std::string> toolLinks_;
-    double dt_ = 0.05;
-    std::vector<AttachedModel*> attachedObjs_;
+    //std::vector<CommandDefParam*> commandDefs_;
   };
 
 }

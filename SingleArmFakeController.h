@@ -18,9 +18,10 @@ namespace teaching
     bool moveArm (std::vector<CompositeParamType>& params) override;
     bool goInitial (std::vector<CompositeParamType>& params) override;
 
+    std::vector<CommandDefParam*> getCommandDefList() { return getCommandDefinitions(); }
+
   private:
     SingleArmFakeController();
-    CartesianInterpolator ci_;
   };
 
 }

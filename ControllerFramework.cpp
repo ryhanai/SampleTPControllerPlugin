@@ -77,44 +77,8 @@ namespace teaching
     SE3 tf(p, q_slerp);
     return tf;
   }
-  
-  Controller::Controller()
-  {
-    attachedObjs_.clear();
-  }
 
-  std::vector<CommandDefParam*> Controller::getCommandDefList() { return commandDefs_; }
-
-  bool Controller::executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params)
-  {
-    Command cmd;
-
-    try {
-      cmd = commands_[commandName];
-    } catch (...) {
-      printLog ("Command ", commandName, " not found");
-      return false;
-    }
-
-    try {
-      if (cmd(params)) { return true; }
-    } catch (RobotNotFoundException& e) {
-      printLog ("Robot ", e.message(), " not found");
-    } catch (ItemNotFoundException& e) {
-      printLog ("Item ", e.message(), " not found");
-    } catch (UndefinedToolException& e) {
-      printLog ("Undefined tool ", e.message());
-    } catch (IKFailureException& e) {
-      printLog ("IK failure ", e.message());
-    } catch (boost::bad_get& e) {
-      printLog ("Unexpected Argument ", e.what());
-    }
-
-    attachedObjs_.clear();
-    return false;
-  }
-
-  bool Controller::attachModelItem (BodyItemPtr object, int target) // attach "object" to "target"
+  bool TPInterface::attachModelItem (BodyItemPtr object, int target)
   {
     BodyPtr robotBody = getRobotItem()->body();
 
@@ -129,7 +93,7 @@ namespace teaching
         model->posVal.push_back(relTrans.data()[index]);
       }
       model->object = object;
-      attachedObjs_.push_back(model);
+      attachedModels_.push_back(model);
 
     } catch(...) {
       printLog("[attachModeItem] unknown link ID: ", target);
@@ -139,7 +103,7 @@ namespace teaching
     return true;
   }
 
-  bool Controller::detachModelItem (BodyItemPtr object, int target)
+  bool TPInterface::detachModelItem (BodyItemPtr object, int target)
   {
     BodyPtr robotBody = getRobotItem()->body();
 
@@ -147,9 +111,9 @@ namespace teaching
       Link* handLink = getToolLink(target);
       Link* objectLink = object->body()->link(0);
 
-      for (std::vector<AttachedModel*>::iterator it = attachedObjs_.begin(); it != attachedObjs_.end();) {
+      for (std::vector<AttachedModel*>::iterator it = attachedModels_.begin(); it != attachedModels_.end();) {
         if ((*it)->handLink == handLink && (*it)->objectLink == objectLink) {
-          it = attachedObjs_.erase(it);
+          it = attachedModels_.erase(it);
           printLog("detachModelItem");
         }
         else {
@@ -165,28 +129,35 @@ namespace teaching
     return true;
   }
 
-  cnoid::Link* Controller::getToolLink(int toolNumber)
+  cnoid::Link* TPInterface::getToolLink(int toolNumber)
   {
     BodyPtr robotBody = getRobotBody();
-    Link* link = robotBody->link(getToolLinkName(toolNumber));
+    std::string link_name = "";
+    try {
+      link_name = getToolLinkName(toolNumber);
+    } catch (...) {
+      throw UndefinedToolNumberException(toolNumber);
+    }
+
+    Link* link = robotBody->link(link_name);
     if (link) {
       return link;
     } else {
-      throw UndefinedToolException(toolNumber);
+      throw UndefinedToolLinkException(link_name);
     }
   }
 
-  BodyItem* Controller::getRobotItem ()
+  BodyItem* TPInterface::getRobotItem ()
   {
-    BodyItem* robotItem = findItemByName(rootName);
+    BodyItem* robotItem = findItemByName(robotName_);
     if (robotItem) {
       return robotItem;
     } else {
-      throw RobotNotFoundException(rootName);
+      throw RobotNotFoundException(robotName_);
     }
   }
 
-  BodyItem* Controller::findItemByName (const std::string& name)
+  BodyItem* TPInterface::findItemByName (const std::string& name)
   {
     ItemList<BodyItem> bodyItems;
     bodyItems.extractChildItems(RootItem::instance());
@@ -198,26 +169,17 @@ namespace teaching
     return NULL;
   }
 
-  BodyPtr Controller::getRobotBody ()
+  BodyPtr TPInterface::getRobotBody ()
   {
     BodyItem* robotItem = getRobotItem();
     BodyPtr robotBody = robotItem->body();
     return robotBody;
   }
 
-  VectorXd Controller::getCurrentJointAngles (BodyPtr body)
+  bool TPInterface::updateAttachedModels ()
   {
-    VectorXd q;
-    int n = body->numJoints();
-    q.resize(n);
-    for (int i = 0; i < n; i++) { q[i] = body->joint(i)->q(); }
-    return q;
-  }
-
-  bool Controller::updateAttachedModels ()
-  {
-    for (unsigned int index = 0; index<attachedObjs_.size(); index++) {
-      AttachedModel* model = attachedObjs_[index];
+    for (unsigned int index = 0; index<attachedModels_.size(); index++) {
+      AttachedModel* model = attachedModels_[index];
       Link* hand = model->handLink;
       Link* object = model->objectLink;
 
@@ -237,22 +199,7 @@ namespace teaching
     return true;
   }
 
-  void Controller::registerCommand (std::string internalName, std::string displayName, std::string returnType,
-                                    std::list<A> arguments,
-                                    Command commandFunc)
-  {
-    CommandDefParam* cmd = new CommandDefParam(registeredCommands_++, QString::fromStdString(internalName),
-                                               QString::fromStdString(displayName), QString::fromStdString(returnType));
-    for (auto arg: arguments) {
-      ArgumentDefParam* a = new ArgumentDefParam(arg.name(), arg.type(), arg.numElms(), static_cast<int>(arg.direction()));
-      cmd->addArgument(a);
-    }
-
-    commands_[internalName] = commandFunc;
-    commandDefs_.push_back(cmd);
-  }
-
-  bool Controller::interpolate(int toolNumber, const Vector3& xyz, const Vector3& rpy, double duration, Trajectory& traj)
+  bool TPInterface::interpolate(int toolNumber, const Vector3& xyz, const Vector3& rpy, double duration, Trajectory& traj)
   {
     BodyItem* robotItem = getRobotItem();
     BodyPtr body = getRobotBody();
@@ -295,8 +242,8 @@ namespace teaching
 
     return true;
   }
-  
-  bool Controller::followTrajectory(int toolNumber, const Trajectory& traj)
+
+  bool TPInterface::followTrajectory(int toolNumber, const Trajectory& traj)
   {
     printLog("followTrajectory");
 
@@ -340,42 +287,90 @@ namespace teaching
     return true;
 
   }
-  
-  bool Controller::executeJointMotion()
+
+
+  VectorXd TPInterface::getCurrentJointAngles (BodyPtr body)
   {
-    printLog("executeJointMotion");
+    VectorXd q;
+    int n = body->numJoints();
+    q.resize(n);
+    for (int i = 0; i < n; i++) { q[i] = body->joint(i)->q(); }
+    return q;
+  }
 
-    double duration = jointInterpolator.domainUpper();
-    BodyItem* robotItem = getRobotItem();
-    BodyPtr body = robotItem->body();
+  bool Controller::executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params)
+  {
+    Command cmd;
 
-    for (double time = 0.0; time < duration+dt_; time += dt_) {
-      if (time > duration) { time = duration; }
-
-#ifndef _WIN32
-      auto abs_time = std::chrono::system_clock::now() + std::chrono::milliseconds((int)(dt_*1000));
-#endif
-      VectorXd qRef;
-      qRef = jointInterpolator.interpolate(time);
-      for (int i = 0; i < body->numJoints(); i++) {
-        body->joint(i)->q() = qRef[i];
-      }
-
-      updateAttachedModels();
-      robotItem->notifyKinematicStateChange(true);
-      //QCoreApplication::sendPostedEvents();
-      QCoreApplication::processEvents();
-
-#ifdef _WIN32
-      Sleep((int)(dt_*1000));
-#else
-      std::this_thread::sleep_until(abs_time);
-#endif
+    try {
+      cmd = commands_[commandName];
+    } catch (...) {
+      printLog ("Command ", commandName, " not found");
+      return false;
     }
 
-    printLog("executeJointMotion Finished");
+    try {
+      if (cmd(params)) { return true; }
+    } catch (ControllerException& e) {
+      printLog (e.message());
+    } catch (boost::bad_get& e) {
+      printLog ("Unexpected Argument ", e.what());
+    }
 
-    return true;
+    tpif_->clearAttachedModels();
+    return false;
   }
+
+  bool Controller::attachModelItem (BodyItemPtr object, int target) // attach "object" to "target"
+  {
+    return tpif_->attachModelItem (object, target);
+  }
+
+  bool Controller::detachModelItem (BodyItemPtr object, int target)
+  {
+    return tpif_->detachModelItem (object, target);
+  }
+
+  void Controller::registerCommandFunction (std::string internalName, Command commandFunc)
+  {
+    commands_[internalName] = commandFunc;
+  }
+
+//   bool Controller::executeJointMotion()
+//   {
+//     printLog("executeJointMotion");
+
+//     double duration = jointInterpolator.domainUpper();
+//     BodyItem* robotItem = getRobotItem();
+//     BodyPtr body = robotItem->body();
+
+//     for (double time = 0.0; time < duration+dt_; time += dt_) {
+//       if (time > duration) { time = duration; }
+
+// #ifndef _WIN32
+//       auto abs_time = std::chrono::system_clock::now() + std::chrono::milliseconds((int)(dt_*1000));
+// #endif
+//       VectorXd qRef;
+//       qRef = jointInterpolator.interpolate(time);
+//       for (int i = 0; i < body->numJoints(); i++) {
+//         body->joint(i)->q() = qRef[i];
+//       }
+
+//       updateAttachedModels();
+//       robotItem->notifyKinematicStateChange(true);
+//       //QCoreApplication::sendPostedEvents();
+//       QCoreApplication::processEvents();
+
+// #ifdef _WIN32
+//       Sleep((int)(dt_*1000));
+// #else
+//       std::this_thread::sleep_until(abs_time);
+// #endif
+//     }
+
+//     printLog("executeJointMotion Finished");
+
+//     return true;
+//   }
 
 }
