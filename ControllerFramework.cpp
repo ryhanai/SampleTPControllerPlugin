@@ -19,6 +19,9 @@
 #include <iostream>
 #include "ControllerFramework.h"
 
+//#include <cnoid/SceneView>
+#include <cnoid/ValueTree> // for Listing
+
 namespace teaching
 {
   double toRad (double deg) {
@@ -199,6 +202,31 @@ namespace teaching
     return true;
   }
 
+  bool TPInterface::interpolate(const VectorXd& qGoal, double duration, Trajectory& traj)
+  {
+    BodyItem* robotItem = getRobotItem();
+    BodyPtr body = getRobotBody();
+
+    if (qGoal.size() != body->numJoints()) {
+      printLog("the length of the qGoal doesn't match body->numJoints())");
+      return false;
+    }
+
+    VectorXd qCur = getCurrentJointAngles();
+    ji_.appendSample(0, qCur);
+    ji_.appendSample(duration, qGoal);
+    ji_.update();
+
+    for (double time = 0.0; time < duration+dt_; time += dt_) {
+      if (time > duration) { time = duration; }
+      VectorXd q = ji_.interpolate(time);
+      auto wp = std::make_tuple(time, q);
+      traj.push_back(wp);
+    }
+
+    return true;
+  }
+
   bool TPInterface::interpolate(int toolNumber, const Vector3& xyz, const Vector3& rpy, double duration, Trajectory& traj)
   {
     BodyItem* robotItem = getRobotItem();
@@ -243,6 +271,43 @@ namespace teaching
     return true;
   }
 
+  bool TPInterface::followTrajectory(const Trajectory& traj)
+  {
+    BodyItem* robotItem = getRobotItem();
+    BodyPtr body = getRobotBody();
+
+#ifdef __WIN32
+    double last_tm = 0.0;
+#else
+    auto start_tm = std::chrono::system_clock::now();
+#endif
+
+    for (auto wp : traj) {
+      double tm = std::get<0>(wp);
+      VectorXd q = std::get<1>(wp);
+      for (int i = 0; i < body->numJoints(); i++) { body->joint(i)->q() = q[i]; }
+
+      updateAttachedModels();
+      robotItem->notifyKinematicStateChange(true);
+      //QCoreApplication::sendPostedEvents();
+      QCoreApplication::processEvents();
+      //SceneView::instance()->sceneWidget()->update();
+
+#ifdef _WIN32
+      double dt = tm - last_tm;
+      last_tm = tm;
+      Sleep((int)(dt*1000));
+#else
+      auto abs_time = start_tm + std::chrono::milliseconds((int)(tm*1000));
+      std::this_thread::sleep_until(abs_time);
+#endif
+    }
+
+    printLog("followTrajectory finished");
+
+    return true;
+  }
+
   bool TPInterface::followTrajectory(int toolNumber, const Trajectory& traj)
   {
     printLog("followTrajectory");
@@ -253,31 +318,30 @@ namespace teaching
     Link* tool = getToolLink(toolNumber);
     JointPathPtr jointPath = getCustomJointPath(body, base, tool);
 
+#ifdef __WIN32
     double last_tm = 0.0;
+#else
+    auto start_tm = std::chrono::system_clock::now();
+#endif
 
     for (auto wp : traj) {
       double tm = std::get<0>(wp);
       VectorXd q = std::get<1>(wp);
 
-      double dt = tm - last_tm;
-      last_tm = tm;
-
-#ifndef _WIN32
-      auto abs_time = std::chrono::system_clock::now() + std::chrono::milliseconds((int)(dt*1000));
-#endif
-
-      for (int i = 0; i < jointPath->numJoints(); i++) {
-        jointPath->joint(i)->q() = q[i];
-      }
+      for (int i = 0; i < jointPath->numJoints(); i++) { jointPath->joint(i)->q() = q[i]; }
 
       updateAttachedModels();
       robotItem->notifyKinematicStateChange(true);
       //QCoreApplication::sendPostedEvents();
       QCoreApplication::processEvents();
+      //SceneView::instance()->sceneWidget()->update();
 
 #ifdef _WIN32
+      double dt = tm - last_tm;
+      last_tm = tm;
       Sleep((int)(dt*1000));
 #else
+      auto abs_time = start_tm + std::chrono::milliseconds((int)(tm*1000));
       std::this_thread::sleep_until(abs_time);
 #endif
     }
@@ -288,13 +352,34 @@ namespace teaching
 
   }
 
-
-  VectorXd TPInterface::getCurrentJointAngles (BodyPtr body)
+  VectorXd TPInterface::getCurrentJointAngles ()
   {
+    BodyPtr body = getRobotBody();
     VectorXd q;
     int n = body->numJoints();
     q.resize(n);
     for (int i = 0; i < n; i++) { q[i] = body->joint(i)->q(); }
+    return q;
+  }
+
+  VectorXd TPInterface::getStandardPose ()
+  {
+    BodyPtr body = getRobotBody();
+    VectorXd q;
+    q.resize(body->numJoints());
+
+    const Listing& pose = *body->info()->findListing("standardPose");
+    if (!pose.isValid()) {
+      printLog("standard pose is not valid");
+    } else if (pose.size() != body->numJoints()) {
+      printLog("getStandardPose: number of joints does not match");
+    } else {
+      for (int jointIndex = 0; jointIndex < pose.size(); jointIndex++) {
+        q[jointIndex] = radian(pose[jointIndex].toDouble());
+      }
+    }
+
+    // exception would be better if standardPose is not defined
     return q;
   }
 

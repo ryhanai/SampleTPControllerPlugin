@@ -41,6 +41,15 @@ namespace teaching
 
   bool SingleArmFakeController::goInitial (std::vector<CompositeParamType>& params)
   {
+    double duration = boost::get<double>(params[0]);
+    printLog("goInitial(", duration, ")");
+
+    VectorXd qGoal = tpif_->getStandardPose();
+    Trajectory traj;
+    if (tpif_->interpolate(qGoal, duration, traj)) {
+      return tpif_->followTrajectory(traj);
+    }
+
     return false;
   }
 

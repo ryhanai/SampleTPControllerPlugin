@@ -176,13 +176,16 @@ namespace teaching
     double getTimeStep () { return dt_; }
 
 
-    //cnoid::Interpolator<cnoid::VectorXd> jointInterpolator;
+    cnoid::Interpolator<cnoid::VectorXd> ji_;
     CartesianInterpolator ci_;
+    bool interpolate(const VectorXd& qGoal, double duration, Trajectory& traj);
     bool interpolate(int toolNumber,
                      const Vector3& xyz, const Vector3& rpy, double duration,
                      Trajectory& traj);
+    bool followTrajectory(const Trajectory& traj);
     bool followTrajectory(int toolNumber, const Trajectory& traj);
-    cnoid::VectorXd getCurrentJointAngles(cnoid::BodyPtr body);
+    cnoid::VectorXd getCurrentJointAngles();
+    cnoid::VectorXd getStandardPose();
     
   private:
     std::string robotName_;
@@ -201,15 +204,11 @@ namespace teaching
     typedef std::function<bool(std::vector<CompositeParamType>&)> Command;
 
     // Methods called by teachingPlugin
-    // std::vector<CommandDefParam*> getCommandDefList();
     virtual bool executeCommand(const std::string& commandName, std::vector<CompositeParamType>& params);
 
     // delegate to ControllerContext
     bool attachModelItem(cnoid::BodyItemPtr object, int target);
     bool detachModelItem(cnoid::BodyItemPtr object, int target);
-
-    // bool executeJointMotion();
-    // bool executeCartesianMotion(Link* wrist, JointPathPtr jointPath);
 
     void registerCommandFunction (std::string internalName, Command command);
 

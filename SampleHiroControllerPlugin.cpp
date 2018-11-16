@@ -37,7 +37,7 @@ public:
     TPInterfacePtr tpif = std::make_shared<TPInterface>();
     tpif->setToolLink(0, "arm1/Link6");
     tpif->setRobotName("main_withHands");
-    tpif->setTimeStep(0.02);
+    tpif->setTimeStep(0.05);
     c->setTPInterface(tpif);
     ControllerManager::instance()->registController("SingleArmFakeController", c);
 
