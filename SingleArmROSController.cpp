@@ -2,12 +2,13 @@
    @author Ryo Hanai
 */
 
-#include "SingleArmFakeController.h"
+#include "SingleArmROSController.h"
+#include "TPUtil.h"
 
 namespace teaching
 {
 
-  bool SingleArmFakeController::moveArm (std::vector<CompositeParamType>& params)
+  bool SingleArmROSController::moveArm (std::vector<CompositeParamType>& params)
   {
     Vector3 xyz(boost::get<VectorX>(params[0]));
     Vector3 rpy_tmp(boost::get<VectorX>(params[1]));
@@ -16,16 +17,11 @@ namespace teaching
     int armID = boost::get<int>(params[3]);
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
-    TPInterface& tpif = TPInterface::instance();
-    Trajectory traj;
-    if (tpif.interpolate(armID, xyz, rpy, duration, traj)) {
-      return tpif.followTrajectory(armID, traj);
-    }
-
+    printLog("not yet implemented");
     return false;
   }
 
-  bool SingleArmFakeController::goInitial (std::vector<CompositeParamType>& params)
+  bool SingleArmROSController::goInitial (std::vector<CompositeParamType>& params)
   {
     double duration = boost::get<double>(params[0]);
     printLog("goInitial(", duration, ")");
@@ -33,10 +29,8 @@ namespace teaching
     TPInterface& tpif = TPInterface::instance();
     VectorXd qGoal = tpif.getStandardPose();
     Trajectory traj;
-    if (tpif.interpolate(qGoal, duration, traj)) {
-      return tpif.followTrajectory(traj);
-    }
 
+    printLog("not yet implemented");
     return false;
   }
 

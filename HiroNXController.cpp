@@ -5,30 +5,33 @@
 #include <functional>
 using namespace std::placeholders;
 
-#include "UR3dualController.h"
+#include "HiroNXController.h"
 
 namespace teaching
 {
 
-  UR3dualController* UR3dualController::instance ()
+  HiroNXController* HiroNXController::instance ()
   {
-    static UR3dualController* c = new UR3dualController();
+    static HiroNXController* c = new HiroNXController();
     return c;
   }
 
-  void UR3dualController::initialize ()
+  void HiroNXController::initialize ()
   {
     TPInterface& tpif = TPInterface::instance();
-    tpif.setToolLink(0, "larm_wrist_3_joint");
-    tpif.setToolLink(1, "rarm_wrist_3_joint");
+    tpif.setToolLink(0, "LARM_JOINT5");
+    tpif.setToolLink(1, "RARM_JOINT5");
     tpif.setRobotName("main_withHands");
 
-    setCommandSet(new SingleArmWithGripperCommandSet);
+    setCommandSet(new HiroNXCommandSet);
 
     bindCommandFunction("moveArm", false, std::bind(&SingleArmFakeController::moveArm, fake_armc_, _1));
-    bindCommandFunction("moveGripper", false, std::bind(&RobotiqGripperFakeController::moveGripper, fake_gripperc_, _1));
 
-    // モデルが統合されているので、fake実行の場合はどのコントローラのgoInitialを呼んでも同じ
+    bindCommandFunction("moveTorso", false, std::bind(&HiroNXFakeController::moveTorso, fake_nxc_, _1));
+    bindCommandFunction("moveHead", false, std::bind(&HiroNXFakeController::moveHead, fake_nxc_, _1));
+    bindCommandFunction("moveBothArms", false, std::bind(&HiroNXFakeController::moveBothArms, fake_nxc_, _1));
+
+    bindCommandFunction("moveGripper", false, std::bind(&HiroNXFakeController::moveGripper, fake_nxc_, _1));
     bindCommandFunction("goInitial", false, std::bind(&SingleArmFakeController::goInitial, fake_armc_, _1));
 
 #ifdef ROS_ON

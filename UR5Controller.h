@@ -12,10 +12,10 @@
 namespace teaching
 {
 
-  class UR3dualController : public Controller
+  class UR5Controller : public Controller
   {
   public:
-    static UR3dualController* instance ();
+    static UR5Controller* instance();
     void initialize ();
 
   private:
@@ -24,6 +24,7 @@ namespace teaching
 
 #ifdef ROS_ON
     SingleArmROSController ros_armc_;
+    RobotiqGripperFakeController fake_gripperc_;
 #endif
 
   };

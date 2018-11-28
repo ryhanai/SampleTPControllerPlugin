@@ -48,22 +48,34 @@ set(libname CnoidSampleHiroControllerPlugin)
 
 set(sources
   SampleHiroControllerPlugin.cpp
-  # SampleHiroController.cpp
-  # UR3dualController.cpp
+  I611Controller.cpp
+  UR3dualController.cpp
+  UR5Controller.cpp
+  HiroNXController.cpp
+  EZGripperFakeController.cpp
+  RobotiqGripperFakeController.cpp
+  HiroNXFakeController.cpp
   SingleArmFakeController.cpp
-  SingleArmControllerIF.cpp
-  ControllerIF.cpp
-  #SingleArmWithGripperFakeController.cpp
   ControllerFramework.cpp
+  CommandSet.cpp
+  TPUtil.cpp
   )
 
 set(headers
-  # SampleHiroController.h
-  # UR3dualController.h
+  I611Controller.h
+  UR3dualController.h
+  UR5Controller.h
+  HiroNXController.h
+  EZGripperFakeController.h
+  RobotiqGripperFakeController.h
+  HiroNXFakeController.h
   SingleArmFakeController.h
-  SingleArmControllerIF.h
-  ControllerIF.h
+  HiroNXCommandSet.h
   ControllerFramework.h
+  SingleArmWithGripperCommandSet.h
+  SingleArmCommandSet.h
+  CommandSet.h
+  TPUtil.h
   Interpolator.h
   gettext.h
   )
@@ -80,15 +92,17 @@ set(libs
 if(USE_ROS)
   set(sources
     ${sources}
-    FollowTrajectoryControllerROS.cpp
-    FollowTrajectoryControllerUR3Dual.cpp
-    #MoveItControllerUR3Dual.cpp
+    SingleArmROSController.cpp
+    # FollowTrajectoryControllerROS.cpp
+    # FollowTrajectoryControllerUR3Dual.cpp
+     #MoveItControllerUR3Dual.cpp
     )
   set(headers
     ${headers}
-    FollowTrajectoryControllerROS.h
-    FollowTrajectoryControllerUR3Dual.h
-    #MoveItControllerUR3Dual.h
+    SingleArmROSController.h
+    # FollowTrajectoryControllerROS.h
+    # FollowTrajectoryControllerUR3Dual.h
+    # MoveItControllerUR3Dual.h
     )
   set(includes
     ${includes}

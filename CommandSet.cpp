@@ -2,14 +2,13 @@
    @author Ryo Hanai
 */
 
-#include "ControllerFramework.h"
-#include "ControllerIF.h"
+#include "CommandSet.h"
 
 namespace teaching
 {
-  void ControllerIF::defineCommand (std::string internalName, std::string displayName,
-                                    std::string returnType,
-                                    std::list<A> arguments)
+  void CommandSet::defineCommand (std::string internalName, std::string displayName,
+                                  std::string returnType,
+                                  std::list<A> arguments)
   {
     CommandDefParam* cmd = new CommandDefParam(registeredCommands_++, QString::fromStdString(internalName),
                                                QString::fromStdString(displayName), QString::fromStdString(returnType));
@@ -21,6 +20,6 @@ namespace teaching
     commandDefs_.push_back(cmd);
   }
 
-  std::vector<CommandDefParam*> ControllerIF::getCommandDefinitions () { return commandDefs_; }
+  std::vector<CommandDefParam*> CommandSet::getCommandDefinitions () { return commandDefs_; }
 
 }

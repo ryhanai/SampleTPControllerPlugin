@@ -6,9 +6,11 @@
 #include <cnoid/BodyItem>
 #include <cnoid/ToolBar>
 #include <boost/bind.hpp>
-#include "SampleHiroController.h"
+
+#include "I611Controller.h"
+#include "UR5Controller.h"
 #include "UR3dualController.h"
-#include "SingleArmFakeController.h"
+#include "HiroNXController.h"
 #ifdef ROS_ON
 #include "FollowTrajectoryControllerROS.h"
 #include "FollowTrajectoryControllerUR3Dual.h"
@@ -32,16 +34,10 @@ public:
 
   virtual bool initialize()
   {
-    // ControllerManager::instance()->registController("SampleHiroController", SampleHiroController::instance());
-    Controller* c = SingleArmFakeController::instance();
-    TPInterfacePtr tpif = std::make_shared<TPInterface>();
-    tpif->setToolLink(0, "arm1/Link6");
-    tpif->setRobotName("main_withHands");
-    tpif->setTimeStep(0.05);
-    c->setTPInterface(tpif);
-    ControllerManager::instance()->registController("SingleArmFakeController", c);
-
-    // ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
+    ControllerManager::instance()->registController("I611Controller", I611Controller::instance());
+    ControllerManager::instance()->registController("UR5Controller", UR5Controller::instance());
+    ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
+    ControllerManager::instance()->registController("HiroNXController", HiroNXController::instance());
 
     ToolBar* bar = new ToolBar("SampleHiroController");
     bar->addButton("Sycn with Real")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onSyncButtonClicked, this));
@@ -51,11 +47,6 @@ public:
     bar->addButton("Pose3")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onPose3ButtonClicked, this));
     addToolBar(bar);
     bar->setVisibleByDefault(true);
-    
-#ifdef ROS_ON
-    // ControllerManager::instance()->registController("FollowTrajectoryController", FollowTrajectoryController::instance());
-    ControllerManager::instance()->registController("FollowTrajectoryControllerUR3Dual", FollowTrajectoryControllerUR3Dual::instance());
-#endif
 
     return true;
   }

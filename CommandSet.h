@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "ControllerBase.h"
 #include <string>
 #include <vector>
 #include <list>
+#include "CommandDefTypes.h"
 
 namespace teaching
 {
@@ -39,7 +39,7 @@ namespace teaching
     var_prop _d;
   };
 
-  class ControllerIF
+  class CommandSet
   {
   public:
     void defineCommand (std::string internalName, std::string displayName,

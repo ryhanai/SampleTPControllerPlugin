@@ -5,22 +5,23 @@
 #pragma once
 
 #include "ControllerFramework.h"
-#include "SingleArmWithGripperCommandSet.h"
+#include "HiroNXCommandSet.h"
 #include "SingleArmFakeController.h"
-#include "RobotiqGripperFakeController.h"
+#include "HiroNXFakeController.h"
 
 namespace teaching
 {
 
-  class UR3dualController : public Controller
+  class HiroNXController : public Controller
   {
   public:
-    static UR3dualController* instance ();
+    static HiroNXController* instance ();
     void initialize ();
 
   private:
     SingleArmFakeController fake_armc_;
-    RobotiqGripperFakeController fake_gripperc_;
+    HiroNXFakeController fake_nxc_;
+    // RobotiqGripperFakeController fake_gripperc_;
 
 #ifdef ROS_ON
     SingleArmROSController ros_armc_;

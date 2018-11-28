@@ -9,10 +9,10 @@
 namespace teaching
 {
 
-  class SingleArmFakeController
+  class RobotiqGripperFakeController
   {
   public:
-    bool moveArm (std::vector<CompositeParamType>& params);
+    bool moveGripper (std::vector<CompositeParamType>& params);
     bool goInitial (std::vector<CompositeParamType>& params);
   };
 

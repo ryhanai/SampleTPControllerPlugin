@@ -9,7 +9,7 @@
 namespace teaching
 {
 
-  class SingleArmFakeController
+  class SingleArmROSController
   {
   public:
     bool moveArm (std::vector<CompositeParamType>& params);

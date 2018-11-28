@@ -7,20 +7,20 @@
 #include "ControllerFramework.h"
 #include "SingleArmWithGripperCommandSet.h"
 #include "SingleArmFakeController.h"
-#include "RobotiqGripperFakeController.h"
+#include "EZGripperFakeController.h"
 
 namespace teaching
 {
 
-  class UR3dualController : public Controller
+  class I611Controller : public Controller
   {
   public:
-    static UR3dualController* instance ();
+    static I611Controller* instance ();
     void initialize ();
 
   private:
     SingleArmFakeController fake_armc_;
-    RobotiqGripperFakeController fake_gripperc_;
+    EZGripperFakeController fake_gripperc_;
 
 #ifdef ROS_ON
     SingleArmROSController ros_armc_;
