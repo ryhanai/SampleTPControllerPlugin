@@ -93,16 +93,12 @@ if(USE_ROS)
   set(sources
     ${sources}
     SingleArmROSController.cpp
-    # FollowTrajectoryControllerROS.cpp
-    # FollowTrajectoryControllerUR3Dual.cpp
-     #MoveItControllerUR3Dual.cpp
+    ROSUtil.cpp
     )
   set(headers
     ${headers}
     SingleArmROSController.h
-    # FollowTrajectoryControllerROS.h
-    # FollowTrajectoryControllerUR3Dual.h
-    # MoveItControllerUR3Dual.h
+    ROSUtil.h
     )
   set(includes
     ${includes}

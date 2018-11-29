@@ -33,7 +33,7 @@ namespace teaching
 
 #ifdef ROS_ON
     bindCommandFunction("moveArm", true, std::bind(&SingleArmROSController::moveArm, ros_armc_, _1));
-    bindCommandFunction("moveGripper", false, std::bind(&RobotiqGripperROSController::moveGripper, ros_gripperc_, _1));
+    // bindCommandFunction("moveGripper", false, std::bind(&RobotiqGripperROSController::moveGripper, ros_gripperc_, _1));
     // bindCommandFunction("goInitial", true, std::bind(&SingleArmROSController::goInitial, rosc_, _1));
 #endif
 

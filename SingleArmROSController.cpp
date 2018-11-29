@@ -4,9 +4,20 @@
 
 #include "SingleArmROSController.h"
 #include "TPUtil.h"
+#include "ROSUtil.h"
 
 namespace teaching
 {
+  SingleArmROSController::SingleArmROSController ()
+  {
+    ROSInterface& rosif = ROSInterface::instance();
+    rosif.addTrajectoryClient(0, "/left_arm/follow_joint_trajectory");
+    rosif.addTrajectoryClient(1, "/right_arm/follow_joint_trajectory");
+    rosif.addTrajectoryClient(2, "/left_hand/joint_trajectory_controller/follow_joint_trajectory");
+    rosif.addTrajectoryClient(3, "/right_hand/joint_trajectory_controller/follow_joint_trajectory");
+
+    // addListener("/joint_states", &FollowTrajectoryControllerUR3Dual::updateState);
+  }
 
   bool SingleArmROSController::moveArm (std::vector<CompositeParamType>& params)
   {
@@ -17,8 +28,13 @@ namespace teaching
     int armID = boost::get<int>(params[3]);
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
-    printLog("not yet implemented");
-    return false;
+    TPInterface& tpif = TPInterface::instance();
+    Trajectory traj;
+    if (tpif.interpolate(armID, xyz, rpy, duration, traj)) {
+      ROSInterface::instance().followTrajectory(armID, traj);
+    } else {
+      return false;
+    }
   }
 
   bool SingleArmROSController::goInitial (std::vector<CompositeParamType>& params)
@@ -28,7 +44,6 @@ namespace teaching
 
     TPInterface& tpif = TPInterface::instance();
     VectorXd qGoal = tpif.getStandardPose();
-    Trajectory traj;
 
     printLog("not yet implemented");
     return false;

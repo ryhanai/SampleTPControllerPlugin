@@ -9,6 +9,10 @@
 #include "SingleArmFakeController.h"
 #include "RobotiqGripperFakeController.h"
 
+#ifdef ROS_ON
+#include "SingleArmROSController.h"
+#endif
+
 namespace teaching
 {
 

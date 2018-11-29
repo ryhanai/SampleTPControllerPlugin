@@ -12,7 +12,8 @@ namespace teaching
     CommandFunction cmd;
 
     try {
-      cmd = commandTable_[std::make_tuple(commandName, isReal)];
+      // cmd = commandTable_[std::make_tuple(commandName, isReal)];
+      cmd = commandTable_[std::make_tuple(commandName, true)];
     } catch (...) {
       printLog ("Command ", commandName, " not found");
       return false;

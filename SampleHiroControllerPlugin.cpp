@@ -11,10 +11,6 @@
 #include "UR5Controller.h"
 #include "UR3dualController.h"
 #include "HiroNXController.h"
-#ifdef ROS_ON
-#include "FollowTrajectoryControllerROS.h"
-#include "FollowTrajectoryControllerUR3Dual.h"
-#endif
 
 #include "ControllerManager.h"
 
@@ -53,7 +49,7 @@ public:
 
   void onSyncButtonClicked()
   {
-#ifdef ROS_ON
+#if 0
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -63,7 +59,7 @@ public:
 
   void onPose1ButtonClicked()
   {
-#ifdef ROS_ON
+#if 0
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -90,7 +86,7 @@ public:
 
   void onPose2ButtonClicked()
   {
-#ifdef ROS_ON
+#if 0
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -117,7 +113,7 @@ public:
 
   void onPose3ButtonClicked()
   {
-#ifdef ROS_ON
+#if 0
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -144,7 +140,7 @@ public:
 
   void onInitialPoseButtonClicked()
   {
-#ifdef ROS_ON
+#if 0
     FollowTrajectoryControllerUR3Dual* handler =
       (FollowTrajectoryControllerUR3Dual*)ControllerManager::instance()->getController("FollowTrajectoryControllerUR3Dual");
     handler->setRootName("main_withHands");
@@ -161,7 +157,7 @@ public:
     ControllerBase* handler = ControllerManager::instance()->getController("FollowTrajectoryController");
     handler->setRootName("main_withHands");
 
-#ifdef ROS_ON
+#if 0
     FollowTrajectoryController::instance()->sendTrajectory();
 #endif
   }

@@ -19,9 +19,11 @@ namespace teaching
   void I611Controller::initialize ()
   {
     TPInterface& tpif = TPInterface::instance();
-    // i611のロボットモデル、アームモデル依存情報の設定（yamlかBodyから抜き出せるかもしれない）
+    // i611のロボットモデル、アームモデル依存情報の設定
+    // yamlかBodyから抜き出せるかもしれない
     tpif.setToolLink(0, "arm1/Link6");
     tpif.setRobotName("main_withHands");
+    tpif.setTimeStep(0.1); // i611の経由点は100ms or 200msステップとする
 
     // teachingPluginのコントローラがサポートするコマンドセットを定義
     // realとsimulatorで同じコマンドセットでなければならない
@@ -36,7 +38,7 @@ namespace teaching
     // 外部コントローラを設定する
 #ifdef ROS_ON
     bindCommandFunction("moveArm", true, std::bind(&SingleArmROSController::moveArm, ros_armc_, _1));
-    bindCommandFunction("moveGripper", false, std::bind(&EZGripperROSController::moveGripper, ros_gripperc_, _1));
+    // bindCommandFunction("moveGripper", false, std::bind(&EZGripperROSController::moveGripper, ros_gripperc_, _1));
     // bindCommandFunction("goInitial", true, std::bind(&SingleArmROSController::goInitial, rosc_, _1));
 #endif
 

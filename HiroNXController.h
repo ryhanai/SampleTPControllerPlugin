@@ -9,6 +9,10 @@
 #include "SingleArmFakeController.h"
 #include "HiroNXFakeController.h"
 
+#ifdef ROS_ON
+#include "SingleArmROSController.h"
+#endif
+
 namespace teaching
 {
 
