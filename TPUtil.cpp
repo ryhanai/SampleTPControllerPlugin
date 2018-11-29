@@ -246,7 +246,7 @@ namespace teaching
     Link* base = body->rootLink();
     Link* tool = getToolLink(toolNumber);
     JointPathPtr jointPath = getCustomJointPath(body, base, tool);
-    jointPath->calcForwardKinematics();
+    // jointPath->calcForwardKinematics();
 
     traj.clear();
 
@@ -263,15 +263,12 @@ namespace teaching
       SE3 tf = ci_.interpolate(time);
       if (jointPath->calcInverseKinematics(tf.translation(),
                                            tool->calcRfromAttitude(tf.rotation().toRotationMatrix()))) {
-        updateAttachedModels();
-        robotItem->notifyKinematicStateChange(true);
+        // robotItem->notifyKinematicStateChange(true);
         VectorXd q;
         q.resize(jointPath->numJoints());
         for (int i = 0; i < jointPath->numJoints(); i++) {
           q[i] = jointPath->joint(i)->q();
-          std::cout << q[i] << ",";
         }
-        std::cout << std::endl;
 
         auto wp = std::make_tuple(time, q);
         traj.push_back(wp);
@@ -298,20 +295,12 @@ namespace teaching
       double tm = std::get<0>(wp);
       VectorXd q = std::get<1>(wp);
 
-      for (int i = 0; i < q.size(); i++) {
-        std::cout << q[i] << ",";
-      }
-      std::cout << std::endl;
-
-
-      
       for (int i = 0; i < body->numJoints(); i++) { body->joint(i)->q() = q[i]; }
-
-      updateAttachedModels();
       robotItem->notifyKinematicStateChange(true);
       //QCoreApplication::sendPostedEvents();
       QCoreApplication::processEvents();
       //SceneView::instance()->sceneWidget()->update();
+      updateAttachedModels();
 
 #ifdef _WIN32
       double dt = tm - last_tm;
@@ -349,12 +338,11 @@ namespace teaching
       VectorXd q = std::get<1>(wp);
 
       for (int i = 0; i < jointPath->numJoints(); i++) { jointPath->joint(i)->q() = q[i]; }
-
-      updateAttachedModels();
       robotItem->notifyKinematicStateChange(true);
       //QCoreApplication::sendPostedEvents();
       QCoreApplication::processEvents();
       //SceneView::instance()->sceneWidget()->update();
+      updateAttachedModels();
 
 #ifdef _WIN32
       double dt = tm - last_tm;
