@@ -18,8 +18,8 @@ namespace teaching
     printLog("moveArm(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
     TPInterface& tpif = TPInterface::instance();
-    Trajectory traj;
-    if (tpif.interpolate(armID, xyz, rpy, duration, traj)) {
+    JointTrajectory traj;
+    if (tpif.interpolate(jointPath_, xyz, rpy, duration, traj)) {
       return tpif.followTrajectory(armID, traj);
     }
 

@@ -6,12 +6,8 @@
 
 #include "ControllerFramework.h"
 #include "SingleArmWithGripperCommandSet.h"
-#include "SingleArmFakeController.h"
-#include "EZGripperFakeController.h"
-
-#ifdef ROS_ON
-#include "SingleArmROSController.h"
-#endif
+#include "SingleArmController.h"
+#include "EZGripperController.h"
 
 namespace teaching
 {
@@ -23,12 +19,12 @@ namespace teaching
     void initialize ();
 
   private:
-    SingleArmFakeController fake_armc_;
-    EZGripperFakeController fake_gripperc_;
+    bool moveArm (std::vector<CompositeParamType>& params, bool isReal);
+    bool moveGripper (std::vector<CompositeParamType>& params, bool isReal);
+    bool goInitial (std::vector<CompositeParamType>& params, bool isReal);
 
-#ifdef ROS_ON
-    SingleArmROSController ros_armc_;
-#endif
+    SingleArmController armc_;
+    EZGripperController gripperc_;
 
   };
 

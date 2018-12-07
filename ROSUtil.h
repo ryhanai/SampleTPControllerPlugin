@@ -24,14 +24,13 @@ namespace teaching
   public:
     static ROSInterface& instance ();
 
-    void addTrajectoryClient (int id, std::string action_name);
-    void setJointStateTopic (std::string topic_name);
-
-    bool followTrajectory (const Trajectory& traj);
-    bool followTrajectory (int toolNumber, const Trajectory& traj);
+    void sendGoal (TrajClientPtr client, const JointTrajectory& traj);
+    bool wait (TrajClientPtr client);
     void updateState (const sensor_msgs::JointState::ConstPtr& jointstate);
     void syncWithReal ();
     void cancelFollowTrajectory ();
+
+    boost::shared_ptr<ros::NodeHandle> getNodeHandle () { return node_; }
 
   private:
     ROSInterface ();

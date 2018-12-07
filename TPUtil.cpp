@@ -17,7 +17,6 @@
 #include <QCoreApplication>
 #include <cnoid/ItemList>
 #include <cnoid/RootItem>
-#include <cnoid/JointPath>
 #include <cnoid/ValueTree> // for Listing
 
 #include "TPUtil.h"
@@ -190,6 +189,15 @@ namespace teaching
     return robotBody;
   }
 
+  JointPathPtr TPInterface::getJointPath (const std::string& endLinkName)
+  {
+    BodyPtr body = getRobotBody();
+    Link* base = body->rootLink();
+    Link* tool = body->link(endLinkName);
+    JointPathPtr joint_path = getCustomJointPath(body, base, tool);
+    return joint_path;
+  }
+
   bool TPInterface::updateAttachedModels ()
   {
     for (unsigned int index = 0; index<attachedModels_.size(); index++) {
@@ -213,19 +221,12 @@ namespace teaching
     return true;
   }
 
-  bool TPInterface::interpolate(const VectorXd& qGoal, double duration, Trajectory& traj)
+  bool TPInterface::interpolate(const VectorXd& qStart, const VectorXd& qGoal, double duration,
+                                JointTrajectory& traj)
   {
-    BodyItem* robotItem = getRobotItem();
-    BodyPtr body = getRobotBody();
-
-    if (qGoal.size() != body->numJoints()) {
-      printLog("the length of the qGoal doesn't match body->numJoints())");
-      return false;
-    }
-
-    VectorXd qCur = getCurrentJointAngles();
+    // This method assumes that joint names are filled in the traj.
     ji_.clear();
-    ji_.appendSample(0, qCur);
+    ji_.appendSample(0, qStart);
     ji_.appendSample(duration, qGoal);
     ji_.update();
 
@@ -233,23 +234,53 @@ namespace teaching
       if (time > duration) { time = duration; }
       VectorXd q = ji_.interpolate(time);
       auto wp = std::make_tuple(time, q);
-      traj.push_back(wp);
+      std::get<1>(traj).push_back(wp);
     }
 
     return true;
   }
 
-  bool TPInterface::interpolate(int toolNumber, const Vector3& xyz, const Vector3& rpy, double duration, Trajectory& traj)
+  bool TPInterface::interpolate(std::vector<std::string>& jointNames,
+                                const VectorXd& qGoal, double duration,
+                                JointTrajectory& traj
+                                )
   {
-    BodyItem* robotItem = getRobotItem();
     BodyPtr body = getRobotBody();
-    Link* base = body->rootLink();
-    Link* tool = getToolLink(toolNumber);
-    JointPathPtr jointPath = getCustomJointPath(body, base, tool);
-    // jointPath->calcForwardKinematics();
 
-    traj.clear();
+    VectorXd qStart;
+    qStart.resize(jointNames.size());
+    for (int i = 0; i < jointNames.size(); i++) {
+      std::get<0>(traj).push_back(jointNames[i]);
+      qStart[i] = body->joint(body->link(jointNames[i])->jointId())->q();
+    }
 
+    return interpolate(qStart, qGoal, duration, traj);
+  }
+
+  bool TPInterface::interpolate (JointPathPtr jointPath,
+                                 const VectorXd& qGoal, double duration,
+                                 JointTrajectory& traj)
+  {
+    std::vector<std::string> joint_names;
+    VectorXd qStart;
+    qStart.resize(jointPath->numJoints());
+    for (int i = 0; i < jointPath->numJoints(); i++) {
+      std::get<0>(traj).push_back(jointPath->joint(i)->name());
+      qStart[i] = jointPath->joint(i)->q();
+    }
+
+    return interpolate(qStart, qGoal, duration, traj);
+  }
+
+  bool TPInterface::interpolate (JointPathPtr jointPath,
+                                 const Vector3& xyz, const Vector3& rpy, double duration, JointTrajectory& traj)
+  {
+    for (int i = 0; i < jointPath->numJoints(); i++) {
+      std::get<0>(traj).push_back(jointPath->joint(i)->name());
+    }
+    std::get<1>(traj).clear();
+
+    Link* tool = jointPath->endLink();
     ci_.clear();
     ci_.appendSample(0, tool->p(), tool->attitude());
     ci_.appendSample(duration, xyz, rotFromRpy(rpy));
@@ -269,9 +300,8 @@ namespace teaching
         for (int i = 0; i < jointPath->numJoints(); i++) {
           q[i] = jointPath->joint(i)->q();
         }
-
         auto wp = std::make_tuple(time, q);
-        traj.push_back(wp);
+        std::get<1>(traj).push_back(wp);
       } else {
         return false; // throwing IK failure exception might be better
       }
@@ -280,7 +310,7 @@ namespace teaching
     return true;
   }
 
-  bool TPInterface::followTrajectory(const Trajectory& traj)
+  bool TPInterface::followTrajectory(const JointTrajectory& traj)
   {
     BodyItem* robotItem = getRobotItem();
     BodyPtr body = getRobotBody();
@@ -291,11 +321,21 @@ namespace teaching
     auto start_tm = std::chrono::system_clock::now();
 #endif
 
-    for (auto wp : traj) {
+    std::vector<std::string> joint_names = std::get<0>(traj);
+
+    for (auto wp : std::get<1>(traj)) {
       double tm = std::get<0>(wp);
       VectorXd q = std::get<1>(wp);
 
-      for (int i = 0; i < body->numJoints(); i++) { body->joint(i)->q() = q[i]; }
+      for (int i = 0; i < q.size(); i++) {
+        Link* link = body->link(joint_names[i]);
+        if (!link) {
+          printLog("joint ", joint_names[i], " not found");
+
+        }
+        body->joint(link->jointId())->q() = q[i];
+      }
+
       robotItem->notifyKinematicStateChange(true);
       //QCoreApplication::sendPostedEvents();
       QCoreApplication::processEvents();
@@ -315,49 +355,6 @@ namespace teaching
     printLog("followTrajectory finished");
 
     return true;
-  }
-
-  bool TPInterface::followTrajectory(int toolNumber, const Trajectory& traj)
-  {
-    printLog("followTrajectory");
-
-    BodyItem* robotItem = getRobotItem();
-    BodyPtr body = getRobotBody();
-    Link* base = body->rootLink();
-    Link* tool = getToolLink(toolNumber);
-    JointPathPtr jointPath = getCustomJointPath(body, base, tool);
-
-#ifdef __WIN32
-    double last_tm = 0.0;
-#else
-    auto start_tm = std::chrono::system_clock::now();
-#endif
-
-    for (auto wp : traj) {
-      double tm = std::get<0>(wp);
-      VectorXd q = std::get<1>(wp);
-
-      for (int i = 0; i < jointPath->numJoints(); i++) { jointPath->joint(i)->q() = q[i]; }
-      robotItem->notifyKinematicStateChange(true);
-      //QCoreApplication::sendPostedEvents();
-      QCoreApplication::processEvents();
-      //SceneView::instance()->sceneWidget()->update();
-      updateAttachedModels();
-
-#ifdef _WIN32
-      double dt = tm - last_tm;
-      last_tm = tm;
-      Sleep((int)(dt*1000));
-#else
-      auto abs_time = start_tm + std::chrono::milliseconds((int)(tm*1000));
-      std::this_thread::sleep_until(abs_time);
-#endif
-    }
-
-    printLog("followTrajectory finished");
-
-    return true;
-
   }
 
   VectorXd TPInterface::getCurrentJointAngles ()

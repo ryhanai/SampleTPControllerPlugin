@@ -10,6 +10,7 @@
 #include <map>
 #include <cnoid/BodyItem>
 #include <cnoid/MessageView>
+#include <cnoid/JointPath>
 #include "Interpolator.h"
 #include "ControllerBase.h"
 
@@ -41,8 +42,8 @@ namespace teaching
     printLogAux (ss, x, rest...);
   }
 
-
-  typedef std::vector<std::tuple<double, cnoid::VectorXd> > Trajectory;
+  typedef std::tuple<double, cnoid::VectorXd> JointTrajectoryPoint;
+  typedef std::tuple<std::vector<std::string>, std::vector<JointTrajectoryPoint> > JointTrajectory;
 
   class CartesianInterpolator // Nextage: straight-line, spherical linear interpolation
   {
@@ -161,7 +162,8 @@ namespace teaching
     cnoid::BodyItem* getRobotItem ();
     cnoid::BodyPtr getRobotBody ();
     void setRobotName (std::string robotName) { robotName_ = robotName; }
-
+    std::string getRobotName () { return robotName_; }
+    JointPathPtr getJointPath (const std::string& endLinkName);
     cnoid::BodyItem* findItemByName (const std::string& name);
 
 
@@ -178,12 +180,18 @@ namespace teaching
 
     cnoid::Interpolator<cnoid::VectorXd> ji_;
     CartesianInterpolator ci_;
-    bool interpolate(const VectorXd& qGoal, double duration, Trajectory& traj);
-    bool interpolate(int toolNumber,
+    bool interpolate(const VectorXd& qStart, const VectorXd& qGoal, double duration,
+                     JointTrajectory& traj);
+    bool interpolate(std::vector<std::string>& jointNames,
+                    const VectorXd& qGoal, double duration,
+                     JointTrajectory& traj);
+    bool interpolate(JointPathPtr jointPath,
+                    const VectorXd& qGoal, double duration,
+                     JointTrajectory& traj);
+    bool interpolate(JointPathPtr jointPath,
                      const Vector3& xyz, const Vector3& rpy, double duration,
-                     Trajectory& traj);
-    bool followTrajectory(const Trajectory& traj);
-    bool followTrajectory(int toolNumber, const Trajectory& traj);
+                     JointTrajectory& traj);
+    bool followTrajectory(const JointTrajectory& traj);
     cnoid::VectorXd getCurrentJointAngles();
     cnoid::VectorXd getStandardPose();
 

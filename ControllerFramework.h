@@ -10,7 +10,7 @@
 
 namespace teaching
 {
-  typedef std::function<bool(std::vector<CompositeParamType>&)> CommandFunction;
+  typedef std::function<bool(std::vector<CompositeParamType>&, bool)> CommandFunction;
 
   class Controller : public ControllerBase
   {
@@ -19,12 +19,12 @@ namespace teaching
     std::vector<CommandDefParam*> getCommandDefList() { return cmdset_->getCommandDefinitions(); }
     bool attachModelItem (cnoid::BodyItemPtr object, int target);
     bool detachModelItem (cnoid::BodyItemPtr object, int target);
-    void bindCommandFunction (std::string internalName, bool isReal, CommandFunction commandFunction);
+    void bindCommandFunction (std::string internalName, CommandFunction commandFunction);
     void setCommandSet (CommandSet* commandSet) { cmdset_ = commandSet; }
 
   private:
     CommandSet* cmdset_;
-    std::map<std::tuple<std::string, bool>, CommandFunction> commandTable_;
+    std::map<std::string, CommandFunction> commandTable_;
   };
 
 }

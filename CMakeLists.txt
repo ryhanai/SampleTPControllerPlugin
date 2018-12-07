@@ -50,12 +50,11 @@ set(sources
   SampleHiroControllerPlugin.cpp
   I611Controller.cpp
   UR3dualController.cpp
-  UR5Controller.cpp
-  HiroNXController.cpp
-  EZGripperFakeController.cpp
-  RobotiqGripperFakeController.cpp
-  HiroNXFakeController.cpp
-  SingleArmFakeController.cpp
+  # UR5Controller.cpp
+  # HiroNXController.cpp
+  EZGripperController.cpp
+  RobotiqGripperController.cpp
+  SingleArmController.cpp
   ControllerFramework.cpp
   CommandSet.cpp
   TPUtil.cpp
@@ -64,12 +63,11 @@ set(sources
 set(headers
   I611Controller.h
   UR3dualController.h
-  UR5Controller.h
-  HiroNXController.h
-  EZGripperFakeController.h
-  RobotiqGripperFakeController.h
-  HiroNXFakeController.h
-  SingleArmFakeController.h
+  # UR5Controller.h
+  # HiroNXController.h
+  EZGripperController.h
+  RobotiqGripperController.h
+  SingleArmController.h
   HiroNXCommandSet.h
   ControllerFramework.h
   SingleArmWithGripperCommandSet.h
@@ -92,12 +90,10 @@ set(libs
 if(USE_ROS)
   set(sources
     ${sources}
-    SingleArmROSController.cpp
     ROSUtil.cpp
     )
   set(headers
     ${headers}
-    SingleArmROSController.h
     ROSUtil.h
     )
   set(includes

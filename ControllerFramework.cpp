@@ -12,15 +12,14 @@ namespace teaching
     CommandFunction cmd;
 
     try {
-      // cmd = commandTable_[std::make_tuple(commandName, isReal)];
-      cmd = commandTable_[std::make_tuple(commandName, true)];
+      cmd = commandTable_[commandName];
     } catch (...) {
       printLog ("Command ", commandName, " not found");
       return false;
     }
 
     try {
-      if (cmd(params)) { return true; }
+      if (cmd(params, isReal)) { return true; }
     } catch (ControllerException& e) {
       printLog (e.message());
     } catch (boost::bad_get& e) {
@@ -41,9 +40,9 @@ namespace teaching
     return TPInterface::instance().detachModelItem (object, target);
   }
 
-  void Controller::bindCommandFunction (std::string internalName, bool isReal, CommandFunction commandFunction)
+  void Controller::bindCommandFunction (std::string internalName, CommandFunction commandFunction)
   {
-    commandTable_[std::make_tuple(internalName, isReal)] = commandFunction;
+    commandTable_[internalName] = commandFunction;
   }
 
 }

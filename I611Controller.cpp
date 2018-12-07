@@ -3,8 +3,6 @@
 */
 
 #include <functional>
-using namespace std::placeholders;
-
 #include "I611Controller.h"
 
 namespace teaching
@@ -19,29 +17,51 @@ namespace teaching
   void I611Controller::initialize ()
   {
     TPInterface& tpif = TPInterface::instance();
-    // i611のロボットモデル、アームモデル依存情報の設定
-    // yamlかBodyから抜き出せるかもしれない
-    tpif.setToolLink(0, "arm1/Link6");
     tpif.setRobotName("main_withHands");
+    tpif.setToolLink(0, "arm1/Link6");
+
     tpif.setTimeStep(0.1); // i611の経由点は100ms or 200msステップとする
 
-    // teachingPluginのコントローラがサポートするコマンドセットを定義
-    // realとsimulatorで同じコマンドセットでなければならない
     setCommandSet(new SingleArmWithGripperCommandSet);
 
-    // teachingPlugin上でのfake実行用のコントローラを設定する
-    bindCommandFunction("moveArm", false, std::bind(&SingleArmFakeController::moveArm, fake_armc_, _1));
-    bindCommandFunction("moveGripper", false, std::bind(&EZGripperFakeController::moveGripper, fake_gripperc_, _1));
-    // armとgripperのgoInitialを呼ぶ関数を設定する
-    // bindCommandFunction("goInitial", false, std::bind(&SingleArmFakeController::goInitial, fake_armc_, _1));
+    armc_.setJointPathName("arm1/Link6"); // base->arm1/Link6のjoint pathを割当てる
 
-    // 外部コントローラを設定する
+    gripperc_.setGripperJoints(
+      {"arm1_ezgripper_finger_L1_1",
+          "arm1_ezgripper_finger_L2_1",
+          "arm1_ezgripper_finger_L1_2",
+          "arm1_ezgripper_finger_L2_2"}
+      );
+    gripperc_.setGripperDriverJoint("arm1_ezgripper_finger_L1_1");
+
+    // アーム、グリッパともに1つしか持っていないので
+    // そのまま下位Controllerに割当てる
+    bindCommandFunction("moveArm", std::bind(&SingleArmController::moveL, armc_,
+                                             std::placeholders::_1, std::placeholders::_2));
+    bindCommandFunction("moveGripper", std::bind(&EZGripperController::moveGripper, gripperc_,
+                                                 std::placeholders::_1, std::placeholders::_2));
+    bindCommandFunction("goInitial", std::bind(&I611Controller::goInitial, this,
+                                               std::placeholders::_1, std::placeholders::_2));
+
 #ifdef ROS_ON
-    bindCommandFunction("moveArm", true, std::bind(&SingleArmROSController::moveArm, ros_armc_, _1));
-    // bindCommandFunction("moveGripper", false, std::bind(&EZGripperROSController::moveGripper, ros_gripperc_, _1));
-    // bindCommandFunction("goInitial", true, std::bind(&SingleArmROSController::goInitial, rosc_, _1));
+    ROSInterface& rosif = ROSInterface::instance(); // ros::init() etc.
+    armc_.setTrajectoryActionClient("/joint_trajectory/action");
+    //gripperc_.setTrajectoryActionClient("/left_hand/joint_trajectory_controller/follow_joint_trajectory");
+    // グリッパはtrajectoryでなく、GripperCommandAction
+    armc_.setJointStateListener("/joint_states");
+    // gripperc_.setJointStateListener("/gripper/joint_states");
+    // グリッパも/joint_statesは出ている？アームと同じトピック？
 #endif
-
   }
 
+  bool I611Controller::goInitial (std::vector<CompositeParamType>& params, bool isReal)
+  {
+    // Fake実行の場合は、
+    // armc_のgoInitialがモデルファイルで定義された初期姿勢を
+    // 実現するためgripperc_のgoInitialを呼ぶ必要がない
+    armc_.goInitial(params, isReal);
+    // gripperc_.goInitial(params, isReal);
+    return false;
+  }
+  
 }

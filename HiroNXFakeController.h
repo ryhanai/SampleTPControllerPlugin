@@ -16,6 +16,11 @@ namespace teaching
     bool moveHead (std::vector<CompositeParamType>& params);
     bool moveBothArms (std::vector<CompositeParamType>& params);
     bool moveGripper (std::vector<CompositeParamType>& params);
+
+    void setJointPath (JointPathPtr jointPath) { jointPath_ = jointPath; }
+
+  private:
+    cnoid::JointPathPtr jointPath_;
   };
 
 }
