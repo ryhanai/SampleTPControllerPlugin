@@ -2,14 +2,7 @@
    @author Ryo Hanai
 */
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <chrono>
-#include <thread>
-#endif
 #include <QCoreApplication>
-
 #include "RobotiqGripperController.h"
 
 namespace teaching
@@ -21,7 +14,7 @@ namespace teaching
     double duration = boost::get<double>(params[1]);
     int gripperID = boost::get<int>(params[2]);
     printLog("moveGripper(", width, ", ", duration, ",", gripperID, ")");
-    
+
     TPInterface& tpif = TPInterface::instance();
     BodyPtr body = tpif.getRobotBody();
 
@@ -68,6 +61,10 @@ namespace teaching
   }
 
 #ifdef ROS_ON
+
+#include <chrono>
+#include <thread>
+
   void RobotiqGripperController::setTrajectoryActionClient (const std::string& actionName)
   {
     client_ = TrajClientPtr(new TrajClient(actionName));
@@ -87,7 +84,7 @@ namespace teaching
 
   void RobotiqGripperController::updateRobotModel ()
   {
-    
+
   }
 
   bool RobotiqGripperController::waitAndUpdateRobotModel ()

@@ -13,8 +13,11 @@
 
 namespace teaching
 {
+
+#ifdef ROS_ON
   typedef actionlib::SimpleActionClient<control_msgs::GripperCommandAction> GripperActionClient;
   typedef std::shared_ptr<GripperActionClient> GripperActionClientPtr;
+#endif
 
   class EZGripperController
   {

@@ -5,13 +5,9 @@
 #pragma once
 
 #include "ControllerFramework.h"
-#include "HiroNXCommandSet.h"
-#include "SingleArmFakeController.h"
-#include "HiroNXFakeController.h"
-
-#ifdef ROS_ON
-#include "SingleArmROSController.h"
-#endif
+#include "SingleArmWithGripperCommandSet.h"
+#include "SingleArmController.h"
+#include "HiroNXGripperController.h"
 
 namespace teaching
 {
@@ -23,13 +19,19 @@ namespace teaching
     void initialize ();
 
   private:
-    SingleArmFakeController fake_armc_;
-    HiroNXFakeController fake_nxc_;
-    // RobotiqGripperFakeController fake_gripperc_;
+    bool moveArm (std::vector<CompositeParamType>& params, bool isReal);
+    bool moveGripper (std::vector<CompositeParamType>& params, bool isReal);
+    bool goInitial (std::vector<CompositeParamType>& params, bool isReal);
 
-#ifdef ROS_ON
-    SingleArmROSController ros_armc_;
-#endif
+    // extension for HiroNX
+    bool moveTorso (std::vector<CompositeParamType>& params, bool isReal);
+    bool moveHead (std::vector<CompositeParamType>& params, bool isReal);
+    bool moveBothArms (std::vector<CompositeParamType>& params, bool isReal);
+
+    SingleArmController rarmc_;
+    SingleArmController larmc_;
+    HiroNXGripperController rgripperc_;
+    HiroNXGripperController lgripperc_;
 
   };
 

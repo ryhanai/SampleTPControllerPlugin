@@ -2,12 +2,6 @@
    @author Ryo Hanai
 */
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <chrono>
-#include <thread>
-#endif
 #include <QCoreApplication>
 #include <algorithm>
 #include "EZGripperController.h"
@@ -63,7 +57,11 @@ namespace teaching
     return true;
   }
 
-  #ifdef ROS_ON
+#ifdef ROS_ON
+
+#include <chrono>
+#include <thread>
+
   void EZGripperController::setGripperActionClient (const std::string& actionName)
   {
     client_ = GripperActionClientPtr(new GripperActionClient(
@@ -86,7 +84,7 @@ namespace teaching
 
   void EZGripperController::updateRobotModel ()
   {
-    
+
   }
 
   bool EZGripperController::waitAndUpdateRobotModel ()

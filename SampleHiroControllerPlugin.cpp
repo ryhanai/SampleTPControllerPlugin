@@ -10,7 +10,7 @@
 #include "I611Controller.h"
 // #include "UR5Controller.h"
 #include "UR3dualController.h"
-// #include "HiroNXController.h"
+#include "HiroNXController.h"
 
 #include "ControllerManager.h"
 
@@ -33,7 +33,7 @@ public:
     ControllerManager::instance()->registController("I611Controller", I611Controller::instance());
     // ControllerManager::instance()->registController("UR5Controller", UR5Controller::instance());
     ControllerManager::instance()->registController("UR3dualController", UR3dualController::instance());
-    // ControllerManager::instance()->registController("HiroNXController", HiroNXController::instance());
+    ControllerManager::instance()->registController("HiroNXController", HiroNXController::instance());
 
     ToolBar* bar = new ToolBar("SampleHiroController");
     bar->addButton("Sycn with Real")->sigClicked().connect(bind(&SampleHiroControllerPlugin::onSyncButtonClicked, this));

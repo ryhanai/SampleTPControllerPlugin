@@ -2,14 +2,7 @@
    @author Ryo Hanai
 */
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <chrono>
-#include <thread>
-#endif
 #include <QCoreApplication>
-
 #include "SingleArmController.h"
 
 namespace teaching
@@ -91,6 +84,9 @@ namespace teaching
 
 
 #ifdef ROS_ON
+
+#include <chrono>
+#include <thread>
 
   void SingleArmController::setTrajectoryActionClient (const std::string& actionName)
   {

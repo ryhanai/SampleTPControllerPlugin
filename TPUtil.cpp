@@ -37,13 +37,13 @@ namespace teaching
     Vector3 rads(degs.array() * M_PI/180.0);
     return rads;
   }
-  
+
   VectorX toRad (VectorX degs)
   {
     VectorX rads(degs.array() * M_PI/180.0);
     return rads;
   }
-  
+
   void CartesianInterpolator::clear()
   {
     vInterpolator_.clear();

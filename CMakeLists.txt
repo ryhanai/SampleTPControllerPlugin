@@ -51,7 +51,8 @@ set(sources
   I611Controller.cpp
   UR3dualController.cpp
   # UR5Controller.cpp
-  # HiroNXController.cpp
+  HiroNXController.cpp
+  HiroNXGripperController.cpp
   EZGripperController.cpp
   RobotiqGripperController.cpp
   SingleArmController.cpp
@@ -64,7 +65,8 @@ set(headers
   I611Controller.h
   UR3dualController.h
   # UR5Controller.h
-  # HiroNXController.h
+  HiroNXController.h
+  HiroNXGripperController.h
   EZGripperController.h
   RobotiqGripperController.h
   SingleArmController.h
