@@ -28,6 +28,10 @@ namespace teaching
       /* defineCommand("moveGripperTest", "GripperTest", "boolean", */
       /*               {A("width", "double", 1), A("tm", "double", 1), A("gripperID", "int", 1), */
       /*                   A("result", "double", 1, A::var_prop::out)}); */
+      defineCommand ("recognize", "Recognize", "boolean", {A("object_id", "int", 1), A("result", "double", 6, A::var_prop::out)});
+      defineCommand ("recognize_double", "Recognize(double)", "boolean", {A("object_id", "int", 1), A("result", "double", 1, A::var_prop::out)});
+      defineCommand ("recognize_int", "Recognize(int)", "boolean", {A("object_id", "int", 1), A("result", "int", 1, A::var_prop::out)});
+
     }
   };
 

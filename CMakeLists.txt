@@ -52,6 +52,7 @@ set(sources
   UR3dualController.cpp
   # UR5Controller.cpp
   HiroNXController.cpp
+  ObjectPoseSensor.cpp
   HiroNXGripperController.cpp
   EZGripperController.cpp
   RobotiqGripperController.cpp
@@ -66,12 +67,14 @@ set(headers
   UR3dualController.h
   # UR5Controller.h
   HiroNXController.h
+  ObjectPoseSensor.h
   HiroNXGripperController.h
   EZGripperController.h
   RobotiqGripperController.h
   SingleArmController.h
   HiroNXCommandSet.h
   ControllerFramework.h
+  ObjectPoseSensorCommandSet.h
   SingleArmWithGripperCommandSet.h
   SingleArmCommandSet.h
   CommandSet.h

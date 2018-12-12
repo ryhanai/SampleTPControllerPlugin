@@ -5,9 +5,10 @@
 #pragma once
 
 #include "ControllerFramework.h"
-#include "SingleArmWithGripperCommandSet.h"
+#include "HiroNXCommandSet.h"
 #include "SingleArmController.h"
 #include "HiroNXGripperController.h"
+#include "ObjectPoseSensor.h"
 
 namespace teaching
 {
@@ -28,10 +29,15 @@ namespace teaching
     bool moveHead (std::vector<CompositeParamType>& params, bool isReal);
     bool moveBothArms (std::vector<CompositeParamType>& params, bool isReal);
 
+    bool recognize (std::vector<CompositeParamType>& params, bool isReal);
+    bool recognize_double (std::vector<CompositeParamType>& params, bool isReal);
+    bool recognize_int (std::vector<CompositeParamType>& params, bool isReal);
+
     SingleArmController rarmc_;
     SingleArmController larmc_;
     HiroNXGripperController rgripperc_;
     HiroNXGripperController lgripperc_;
+    ObjectPoseSensor sensor_;
 
   };
 
