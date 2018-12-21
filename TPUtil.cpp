@@ -315,7 +315,7 @@ namespace teaching
     BodyItem* robotItem = getRobotItem();
     BodyPtr body = getRobotBody();
 
-#ifdef __WIN32
+#ifdef _WIN32
     double last_tm = 0.0;
 #else
     auto start_tm = std::chrono::system_clock::now();
