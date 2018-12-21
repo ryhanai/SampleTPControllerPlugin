@@ -49,7 +49,6 @@ namespace teaching
 
   private:
     std::vector<CommandDefParam*> commandDefs_;
-    int registeredCommands_ = 1;
   };
 
 }

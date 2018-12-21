@@ -10,7 +10,7 @@ namespace teaching
                                   std::string returnType,
                                   std::list<A> arguments)
   {
-    CommandDefParam* cmd = new CommandDefParam(registeredCommands_++, QString::fromStdString(internalName),
+    CommandDefParam* cmd = new CommandDefParam(QString::fromStdString(internalName),
                                                QString::fromStdString(displayName), QString::fromStdString(returnType));
     for (auto arg: arguments) {
       ArgumentDefParam* a = new ArgumentDefParam(arg.name(), arg.type(), arg.numElms(), static_cast<int>(arg.direction()));
