@@ -5,6 +5,11 @@
 #include <QCoreApplication>
 #include "RobotiqGripperController.h"
 
+#ifdef ROS_ON
+#include <chrono>
+#include <thread>
+#endif
+
 namespace teaching
 {
 
@@ -61,10 +66,7 @@ namespace teaching
   }
 
 #ifdef ROS_ON
-
-#include <chrono>
-#include <thread>
-
+  
   void RobotiqGripperController::setTrajectoryActionClient (const std::string& actionName)
   {
     client_ = TrajClientPtr(new TrajClient(actionName));

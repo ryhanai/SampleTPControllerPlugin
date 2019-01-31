@@ -28,7 +28,8 @@ namespace teaching
       ros::init(argc, argv, node_name_);
     }
 
-    node_ = boost::shared_ptr<ros::NodeHandle>(new ros::NodeHandle());    spinner_ = boost::shared_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(1));
+    node_ = boost::shared_ptr<ros::NodeHandle>(new ros::NodeHandle());
+    spinner_ = boost::shared_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(1));
     spinner_->start();
   }
 

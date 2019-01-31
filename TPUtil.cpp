@@ -18,6 +18,7 @@
 #include <cnoid/ItemList>
 #include <cnoid/RootItem>
 #include <cnoid/ValueTree> // for Listing
+#
 
 #include "TPUtil.h"
 
@@ -95,6 +96,8 @@ namespace teaching
   {
     BodyPtr robotBody = getRobotItem()->body();
 
+    printLog("ATTACH = ", object->name());
+    
     try {
       Link* handLink = getToolLink(target);
       Link* objectLink = object->body()->link(0);
@@ -251,7 +254,12 @@ namespace teaching
     qStart.resize(jointNames.size());
     for (int i = 0; i < jointNames.size(); i++) {
       std::get<0>(traj).push_back(jointNames[i]);
-      qStart[i] = body->joint(body->link(jointNames[i])->jointId())->q();
+      Link* link = body->link(jointNames[i]);
+      if (!link) {
+        printLog("Joint ", jointNames[i], " does not exist. The controller and the robot model may not be specified correctly.");
+        return false;
+      }
+      qStart[i] = body->joint(link->jointId())->q();
     }
 
     return interpolate(qStart, qGoal, duration, traj);

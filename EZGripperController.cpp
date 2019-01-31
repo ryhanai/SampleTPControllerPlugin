@@ -6,6 +6,11 @@
 #include <algorithm>
 #include "EZGripperController.h"
 
+#ifdef ROS_ON
+#include <chrono>
+#include <thread>
+#endif
+
 namespace teaching
 {
 
@@ -58,10 +63,7 @@ namespace teaching
   }
 
 #ifdef ROS_ON
-
-#include <chrono>
-#include <thread>
-
+  
   void EZGripperController::setGripperActionClient (const std::string& actionName)
   {
     client_ = GripperActionClientPtr(new GripperActionClient(

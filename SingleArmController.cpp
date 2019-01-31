@@ -5,6 +5,11 @@
 #include <QCoreApplication>
 #include "SingleArmController.h"
 
+#ifdef ROS_ON
+#include <chrono>
+#include <thread>
+#endif
+
 namespace teaching
 {
 
@@ -84,10 +89,7 @@ namespace teaching
 
 
 #ifdef ROS_ON
-
-#include <chrono>
-#include <thread>
-
+  
   void SingleArmController::setTrajectoryActionClient (const std::string& actionName)
   {
     client_ = TrajClientPtr(new TrajClient(actionName));

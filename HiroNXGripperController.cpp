@@ -11,6 +11,9 @@
 #include <QCoreApplication>
 
 #include "HiroNXGripperController.h"
+#ifdef ROS_ON
+#include "ROSUtil.h"
+#endif
 
 namespace teaching
 {
@@ -36,10 +39,8 @@ namespace teaching
     qGoal[3] = th;
     if (tpif.interpolate(gripperJoints_, qGoal, duration, traj)) {
       if (isReal) {
-#ifdef ROS_ON
-        ROSInterface::instance().sendGoal(client_, traj);
-        return waitAndUpdateRobotModel();
-#endif
+        printLog("HiroNXGripperController does not support real robot");
+        return false;
       } else {
         return tpif.followTrajectory(traj);
       }
