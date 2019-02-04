@@ -50,6 +50,18 @@ namespace teaching
     bindCommandFunction("recognize_int", std::bind(&ObjectPoseSensor::recognize_int, sensor_,
                                                    std::placeholders::_1, std::placeholders::_2));
 
+#ifdef ROS_ON
+    ROSInterface& rosif = ROSInterface::instance(); // ros::init() etc.
+    larmc_.setTrajectoryActionClient("/left_arm/follow_joint_trajectory");
+    rarmc_.setTrajectoryActionClient("/right_arm/follow_joint_trajectory");
+    lgripperc_.setTrajectoryActionClient("/left_hand/joint_trajectory_controller/follow_joint_trajectory");
+    rgripperc_.setTrajectoryActionClient("/right_hand/joint_trajectory_controller/follow_joint_trajectory");
+    larmc_.setJointStateListener("/left_arm/joint_states");
+    rarmc_.setJointStateListener("/right_arm/joint_states");
+    lgripperc_.setJointStateListener("/left_hand/joint_states");
+    rgripperc_.setJointStateListener("/right_hand/joint_states");
+#endif
+
   }
 
   bool HiroNXController::moveArm (std::vector<CompositeParamType>& params, bool isReal)

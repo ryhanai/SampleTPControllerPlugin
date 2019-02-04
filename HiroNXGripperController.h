@@ -6,6 +6,10 @@
 
 #include "ControllerFramework.h"
 
+#ifdef ROS_ON
+#include "ROSUtil.h"
+#endif
+
 namespace teaching
 {
 
@@ -19,6 +23,19 @@ namespace teaching
 
   private:
     std::vector<std::string> gripperJoints_;
+
+#ifdef ROS_ON
+  public:
+    void setTrajectoryActionClient (const std::string& actionName);
+    void setJointStateListener (const std::string& topicName);
+
+  private:
+    void jointStateListener (const sensor_msgs::JointState::ConstPtr& jointstate);
+    void updateRobotModel ();
+    bool waitAndUpdateRobotModel ();
+    TrajClientPtr client_;
+    std::map<std::string, double> joint_state_;
+#endif
 
   };
 

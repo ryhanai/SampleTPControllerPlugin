@@ -55,4 +55,50 @@ namespace teaching
     return true;
   }
 
+#ifdef ROS_ON
+
+  void HiroNXGripperController::setTrajectoryActionClient (const std::string& actionName)
+  {
+    client_ = TrajClientPtr(new TrajClient(actionName));
+  }
+
+  void HiroNXGripperController::setJointStateListener (const std::string& topicName)
+  {
+    ROSInterface::instance().getNodeHandle()->subscribe(topicName, 1, &HiroNXGripperController::jointStateListener, this);
+  }
+
+  void HiroNXGripperController::jointStateListener (const sensor_msgs::JointState::ConstPtr& jointstate)
+  {
+    for (int i = 0; i < jointstate->name.size(); i++) {
+      joint_state_[jointstate->name[i]] = jointstate->position[i];
+    }
+  }
+
+  void HiroNXGripperController::updateRobotModel ()
+  {
+
+  }
+
+  bool HiroNXGripperController::waitAndUpdateRobotModel ()
+  {
+    auto start = std::chrono::system_clock::now();
+    while (!client_->getState().isDone() && ros::ok()) {
+      updateRobotModel ();
+
+      auto now = std::chrono::system_clock::now();
+      std::chrono::duration<double> elapsed_seconds = now - start;
+      if (elapsed_seconds.count() > 10.0) {
+        return false;
+      }
+      QCoreApplication::processEvents();
+      TPInterface::instance().updateAttachedModels();
+      auto next = now + std::chrono::milliseconds((int)(TPInterface::instance().getTimeStep()*1000));
+      std::this_thread::sleep_until(next);
+    }
+
+    return true;
+  }
+
+#endif
+
 }
