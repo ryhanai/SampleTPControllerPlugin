@@ -207,7 +207,7 @@ namespace teaching
       AttachedModel* model = attachedModels_[index];
       Link* hand = model->handLink;
       Link* object = model->objectLink;
-
+      
       std::vector<double> vecPos = model->posVal;
       Position objHandTrans;
       for (int index = 0; index < 12; index++) {

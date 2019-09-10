@@ -21,6 +21,7 @@ namespace teaching
     bool detachModelItem (cnoid::BodyItemPtr object, int target);
     void bindCommandFunction (std::string internalName, CommandFunction commandFunction);
     void setCommandSet (CommandSet* commandSet) { cmdset_ = commandSet; }
+    cnoid::Link* getToolLink(int toolNumber);
 
   private:
     CommandSet* cmdset_;

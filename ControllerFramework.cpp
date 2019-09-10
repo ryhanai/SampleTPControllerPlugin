@@ -44,5 +44,9 @@ namespace teaching
   {
     commandTable_[internalName] = commandFunction;
   }
+  cnoid::Link* Controller::getToolLink(int toolNumber)
+  {
+    return TPInterface::instance().getToolLink (toolNumber);
+  }
 
 }
