@@ -89,60 +89,6 @@ namespace teaching
 
   TPInterface::TPInterface ()
   {
-    clearAttachedModels();
-  }
-
-  bool TPInterface::attachModelItem (BodyItemPtr object, int target)
-  {
-    BodyPtr robotBody = getRobotItem()->body();
-
-    printLog("ATTACH = ", object->name());
-    
-    try {
-      Link* handLink = getToolLink(target);
-      Link* objectLink = object->body()->link(0);
-      Position relTrans = handLink->position().inverse()*objectLink->position();
-      AttachedModel* model = new AttachedModel();
-      model->handLink = handLink;
-      model->objectLink = objectLink;
-      for (int index = 0; index < 12; index++) {
-        model->posVal.push_back(relTrans.data()[index]);
-      }
-      model->object = object;
-      attachedModels_.push_back(model);
-
-    } catch(...) {
-      printLog("[attachModeItem] unknown link ID: ", target);
-      return false;
-    }
-
-    return true;
-  }
-
-  bool TPInterface::detachModelItem (BodyItemPtr object, int target)
-  {
-    BodyPtr robotBody = getRobotItem()->body();
-
-    try {
-      Link* handLink = getToolLink(target);
-      Link* objectLink = object->body()->link(0);
-
-      for (std::vector<AttachedModel*>::iterator it = attachedModels_.begin(); it != attachedModels_.end();) {
-        if ((*it)->handLink == handLink && (*it)->objectLink == objectLink) {
-          it = attachedModels_.erase(it);
-          printLog("detachModelItem");
-        }
-        else {
-          ++it;
-        }
-      }
-    }
-    catch (...) {
-      printLog("[detachModeItem] unknown link ID: ", target);
-      return false;
-    }
-
-    return true;
   }
 
   cnoid::Link* TPInterface::getToolLink(int toolNumber)
@@ -199,29 +145,6 @@ namespace teaching
     Link* tool = body->link(endLinkName);
     JointPathPtr joint_path = getCustomJointPath(body, base, tool);
     return joint_path;
-  }
-
-  bool TPInterface::updateAttachedModels ()
-  {
-    for (unsigned int index = 0; index<attachedModels_.size(); index++) {
-      AttachedModel* model = attachedModels_[index];
-      Link* hand = model->handLink;
-      Link* object = model->objectLink;
-      
-      std::vector<double> vecPos = model->posVal;
-      Position objHandTrans;
-      for (int index = 0; index < 12; index++) {
-        objHandTrans.data()[index] = vecPos[index];
-      }
-
-      BodyItemPtr objItem = model->object;
-
-      object->R() = hand->R() * objHandTrans.linear();
-      object->p() = hand->p() + hand->R() * objHandTrans.translation();
-      objItem->notifyKinematicStateChange(true);
-    }
-
-    return true;
   }
 
   bool TPInterface::interpolate(const VectorXd& qStart, const VectorXd& qGoal, double duration,
@@ -347,8 +270,6 @@ namespace teaching
       robotItem->notifyKinematicStateChange(true);
       //QCoreApplication::sendPostedEvents();
       QCoreApplication::processEvents();
-      //SceneView::instance()->sceneWidget()->update();
-      updateAttachedModels();
 
 #ifdef _WIN32
       double dt = tm - last_tm;

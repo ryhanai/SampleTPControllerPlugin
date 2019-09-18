@@ -26,18 +26,8 @@ namespace teaching
       printLog ("Unexpected Argument ", e.what());
     }
 
-    TPInterface::instance().clearAttachedModels();
+    //TPInterface::instance().clearAttachedModels();
     return false;
-  }
-
-  bool Controller::attachModelItem (BodyItemPtr object, int target) // attach "object" to "target"
-  {
-    return TPInterface::instance().attachModelItem (object, target);
-  }
-
-  bool Controller::detachModelItem (BodyItemPtr object, int target)
-  {
-    return TPInterface::instance().detachModelItem (object, target);
   }
 
   void Controller::bindCommandFunction (std::string internalName, CommandFunction commandFunction)

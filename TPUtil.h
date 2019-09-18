@@ -65,23 +65,6 @@ namespace teaching
     std::vector<cnoid::Matrix3d> qsamples_;
   };
 
-  class AttachedModel
-  {
-  public:
-    AttachedModel() {};
-    AttachedModel(AttachedModel& source)
-      : handLink(source.handLink), objectLink(source.objectLink),
-        posVal(source.posVal),
-        object(source.object) {
-    };
-
-    cnoid::Link* handLink;
-    cnoid::Link* objectLink;
-    cnoid::BodyItemPtr object;
-    std::vector<double> posVal;
-  };
-
-
   class ControllerException
   {
   public:
@@ -166,13 +149,6 @@ namespace teaching
     JointPathPtr getJointPath (const std::string& endLinkName);
     cnoid::BodyItem* findItemByName (const std::string& name);
 
-
-    // Model action
-    bool updateAttachedModels ();
-    void clearAttachedModels () { attachedModels_.clear(); }
-    bool attachModelItem(cnoid::BodyItemPtr object, int target);
-    bool detachModelItem(cnoid::BodyItemPtr object, int target);
-
     // Simulator configuration
     void setTimeStep (double seconds) { dt_ = seconds; }
     double getTimeStep () { return dt_; }
@@ -197,7 +173,6 @@ namespace teaching
 
   private:
     TPInterface ();
-    std::vector<AttachedModel*> attachedModels_;
 
     // controller-dependent
     std::string robotName_;
