@@ -23,7 +23,7 @@ namespace teaching
     printLog("moveL(", xyz.transpose(), ", ", rpy.transpose(), ", ", duration, ", ", armID, ")");
 
     TPInterface& tpif = TPInterface::instance();
-    JointPathPtr joint_path = tpif.getJointPath(jointPathName_);
+    JointPathPtr joint_path = tpif.getJointPath(baseLinkName_, targetLinkName_);
     JointTrajectory traj;
     if (tpif.interpolate(joint_path, xyz, rpy, duration, traj)) {
       if (isReal) {
@@ -47,7 +47,7 @@ namespace teaching
     printLog("moveJ(", qGoal.transpose(), ", ", duration, ", ", armID, ")");
 
     TPInterface& tpif = TPInterface::instance();
-    JointPathPtr joint_path = tpif.getJointPath(jointPathName_);
+    JointPathPtr joint_path = tpif.getJointPath(baseLinkName_, targetLinkName_);
 
     JointTrajectory traj;
     if (tpif.interpolate(joint_path, qGoal, duration, traj)) {
@@ -109,7 +109,7 @@ namespace teaching
 
   void SingleArmController::updateRobotModel ()
   {
-    JointPathPtr joint_path = TPInterface::instance().getJointPath(jointPathName_);
+    JointPathPtr joint_path = TPInterface::instance().getJointPath(baseLinkName_, targetLinkName_);
     for (int i = 0; i < joint_path->numJoints(); i++) {
       joint_path->joint(i)->q() = joint_state_[joint_path->joint(i)->name()];
     }

@@ -147,6 +147,7 @@ namespace teaching
     void setRobotName (std::string robotName) { robotName_ = robotName; }
     std::string getRobotName () { return robotName_; }
     JointPathPtr getJointPath (const std::string& endLinkName);
+    JointPathPtr getJointPath (const std::string& baseLinkName, const std::string& endLinkName);
     cnoid::BodyItem* findItemByName (const std::string& name);
 
     // Simulator configuration

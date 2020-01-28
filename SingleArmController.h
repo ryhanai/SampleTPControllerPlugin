@@ -20,10 +20,17 @@ namespace teaching
     bool moveJ (std::vector<CompositeParamType>& params, bool isReal);
     bool goInitial (std::vector<CompositeParamType>& params, bool isReal);
 
-    void setJointPathName (std::string jointPathName) { jointPathName_ = jointPathName; }
+    void setJointPathName (std::string targetLinkName) { targetLinkName_ = targetLinkName; }
+    void setJointPathName (std::string baseLinkName, std::string targetLinkName) {
+      baseLinkName_ = baseLinkName;
+      targetLinkName_ = targetLinkName;
+    }
+
+  SingleArmController() : baseLinkName_(""), targetLinkName_("") { }
 
   private:
-    std::string jointPathName_;
+    std::string baseLinkName_;
+    std::string targetLinkName_;
 
 #ifdef ROS_ON
   public:

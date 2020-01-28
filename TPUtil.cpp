@@ -147,6 +147,15 @@ namespace teaching
     return joint_path;
   }
 
+  JointPathPtr TPInterface::getJointPath (const std::string& baseLinkName, const std::string& endLinkName)
+  {
+    BodyPtr body = getRobotBody();
+    Link* base = body->link(baseLinkName);
+    Link* tool = body->link(endLinkName);
+    JointPathPtr joint_path = getCustomJointPath(body, base, tool);
+    return joint_path;
+  }
+
   bool TPInterface::interpolate(const VectorXd& qStart, const VectorXd& qGoal, double duration,
                                 JointTrajectory& traj)
   {

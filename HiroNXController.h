@@ -35,6 +35,8 @@ namespace teaching
 
     SingleArmController rarmc_;
     SingleArmController larmc_;
+    SingleArmController rarm_no_waistc_;
+    SingleArmController larm_no_waistc_;
     HiroNXGripperController rgripperc_;
     HiroNXGripperController lgripperc_;
     ObjectPoseSensor sensor_;

@@ -20,12 +20,16 @@ namespace teaching
     tpif.setRobotName("main_withHands");
     tpif.setToolLink(0, "LARM_JOINT5");
     tpif.setToolLink(1, "RARM_JOINT5");
+    tpif.setToolLink(2, "LARM_JOINT5");
+    tpif.setToolLink(3, "RARM_JOINT5");
 
     setCommandSet(new HiroNXCommandSet);
 
     // setup low-level controllers
-    larmc_.setJointPathName("LARM_JOINT5");
-    rarmc_.setJointPathName("RARM_JOINT5");
+    larmc_.setJointPathName("WAIST", "LARM_JOINT5");
+    rarmc_.setJointPathName("WAIST", "RARM_JOINT5");
+    larm_no_waistc_.setJointPathName("CHEST_JOINT0", "LARM_JOINT5");
+    rarm_no_waistc_.setJointPathName("CHEST_JOINT0", "RARM_JOINT5");
     lgripperc_.setGripperJoints({"LHAND_JOINT0", "LHAND_JOINT1", "LHAND_JOINT2", "LHAND_JOINT3"});
     rgripperc_.setGripperJoints({"RHAND_JOINT0", "RHAND_JOINT1", "RHAND_JOINT2", "RHAND_JOINT3"});
 
@@ -75,6 +79,12 @@ namespace teaching
     case 1:
       return rarmc_.moveL(params, isReal);
       break;
+    case 2:
+      return larm_no_waistc_.moveL(params, isReal);
+      break;
+    case 3:
+      return rarm_no_waistc_.moveL(params, isReal);
+      break;
     default:
       printLog("undefined armID");
       return false;
@@ -86,10 +96,10 @@ namespace teaching
     int gripperID = boost::get<int>(params[2]);
 
     switch (gripperID) {
-    case 0:
+    case 0:case 2:
       return lgripperc_.moveGripper(params, isReal);
       break;
-    case 1:
+    case 1:case 3:
       return rgripperc_.moveGripper(params, isReal);
       break;
     default:
